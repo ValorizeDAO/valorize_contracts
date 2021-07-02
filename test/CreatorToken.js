@@ -7,5 +7,6 @@ describe("CreatorToken", function() {
     await token.deployed();
     expect(await token.name()).to.equal("CreatorTest");
     expect(await token.symbol()).to.equal("TST");
+    expect(await token.totalSupply()).to.equal(1000000);
   });
 });
