@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "./Stakeable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 /**
  * @title CreatorToken
  * @author Javier Gonzalez
@@ -11,8 +14,13 @@ import "./Stakeable.sol";
  *         some amount of ether that can be traded out at any point.
  */
 
-contract CreatorToken is StakeableERC20 {
+contract CreatorToken is Stakeable, ERC20, Ownable {
   constructor(uint256 initialSupply, string memory name, string memory symbol) ERC20(name, symbol) {
       _mint(msg.sender, initialSupply);
+  }
+
+  function stake() public payable {
+    _stake(msg.value);
+    _mint(msg.sender, msg.value * 1000);
   }
 }
