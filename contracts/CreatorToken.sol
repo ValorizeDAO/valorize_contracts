@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "./Stakeable.sol";
+import { Sqrt } from "./Math.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -15,12 +16,21 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  */
 
 contract CreatorToken is Stakeable, ERC20, Ownable {
-  constructor(uint256 initialSupply, string memory name, string memory symbol) ERC20(name, symbol) {
-      _mint(msg.sender, initialSupply);
+  using Sqrt for uint;
+  uint immutable initialSupply;
+
+  constructor(uint256 _initialSupply, string memory name, string memory symbol) ERC20(name, symbol) {
+    _mint(msg.sender, _initialSupply);
+    initialSupply = _initialSupply;
   }
 
-  function stake() public payable {
-    _stake(msg.value);
-    _mint(msg.sender, msg.value * 1000);
+  function stakeForNewTokens() public payable {
+    uint squareRootOfStakedAmount = address(this).balance.sqrt();
+    console.log(squareRootOfStakedAmount);
+		uint amountToMint = (squareRootOfStakedAmount / 1000000);
+    _mint(msg.sender, ((amountToMint / 10 ) * 9));
+    _mint(owner(), (amountToMint / 10));
+		_minted(amountToMint);
   }
+
 }
