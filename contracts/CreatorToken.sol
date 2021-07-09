@@ -45,7 +45,6 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     _mint(owner(), amountForOwner);
     uint minted = amountForSender + amountForOwner;
 		_minted(minted);// Because of rounding errors, this is preferable than using amountToMint
-    console.log(squareRootOfStakedAmount, amountToMint);
     emit Minted(msg.sender, minted, amountForSender, amountForOwner);
   }
 

@@ -57,18 +57,42 @@ describe("CreatorToken", () => {
       expect(senderBalance).to.equal(2845);
       await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata)
       senderBalance = await token.balanceOf(addr1.address)
-      expect(senderBalance).to.equal(2845);
+      expect(senderBalance).to.equal(6869);
     })
 
-    it("Should allow for the founder percentage to be reconfigured by the owner", async () => {
-      const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
-      await token.connect(owner).changeFounderPercentage(20);
+    describe("Founder Percentage", () => {
+      beforeEach(async () => {
+        const Sqrt = await ethers.getContractFactory("Sqrt");
+        const sqrtUtil = await Sqrt.deploy();
+        await sqrtUtil.deployed();
 
-      let ownerBalance = await token.balanceOf(owner.address)
-      await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
-      let newOwnerBalance = await token.balanceOf(owner.address)
-      let ownerBalanceDiff = newOwnerBalance - ownerBalance
-      expect(ownerBalanceDiff).to.equal(632);
+        CreatorToken = await ethers.getContractFactory("CreatorToken", { 
+          libraries: {
+            Sqrt: sqrtUtil.address 
+          }
+        });
+        token = await CreatorToken.deploy(1000, "CreatorTest", "TST");
+        await token.deployed();
+        [owner, addr1, ...addreses] = await ethers.getSigners();
+      })
+
+      it("Should allow for the founder percentage to be reconfigured by the owner", async () => {
+        const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
+        await token.connect(owner).changeFounderPercentage(20);
+
+        let ownerBalance = await token.balanceOf(owner.address)
+        await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
+        let newOwnerBalance = await token.balanceOf(owner.address)
+        let ownerBalanceDiff = newOwnerBalance - ownerBalance;
+        expect(ownerBalanceDiff).to.equal(632);
+      })
+
+      it("Should not allow for a non founder to change the founder percentage", async () => {
+        const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
+        await expect(
+          token.connect(addr1).changeFounderPercentage(20)
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      })
     })
   })
 });
