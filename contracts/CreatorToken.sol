@@ -18,19 +18,40 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract CreatorToken is Stakeable, ERC20, Ownable {
   using Sqrt for uint;
   uint immutable initialSupply;
+  uint founderPercentage = 10;
 
   constructor(uint256 _initialSupply, string memory name, string memory symbol) ERC20(name, symbol) {
     _mint(msg.sender, _initialSupply);
     initialSupply = _initialSupply;
   }
 
+  event Minted(
+    address buyer, 
+    uint amountMinted, 
+    uint amountDistributedToBuyer, 
+    uint amountDistributedToOwner 
+  );
+
   function stakeForNewTokens() public payable {
     uint squareRootOfStakedAmount = address(this).balance.sqrt();
-    console.log(squareRootOfStakedAmount);
-		uint amountToMint = (squareRootOfStakedAmount / 1000000);
-    _mint(msg.sender, ((amountToMint / 10 ) * 9));
-    _mint(owner(), (amountToMint / 10));
-		_minted(amountToMint);
+		uint amountToMint = (squareRootOfStakedAmount / 10000);
+
+    if(amountToMint == 0) revert("not enough ETH for minting a token");
+
+    uint amountForSender = ((amountToMint * (100 - founderPercentage) / 100 ));
+    uint amountForOwner = (amountToMint * founderPercentage) / 100 ;
+
+    _mint(msg.sender,  amountForSender);
+    _mint(owner(), amountForOwner);
+    uint minted = amountForSender + amountForOwner;
+		_minted(minted);// Because of rounding errors, this is preferable than using amountToMint
+    console.log(squareRootOfStakedAmount, amountToMint);
+    emit Minted(msg.sender, minted, amountForSender, amountForOwner);
+  }
+
+  function changeFounderPercentage(uint _newPercentage) onlyOwner public {
+    require(_newPercentage < 100);
+    founderPercentage = _newPercentage;
   }
 
 }
