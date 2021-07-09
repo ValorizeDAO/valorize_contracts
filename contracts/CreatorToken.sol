@@ -18,11 +18,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract CreatorToken is Stakeable, ERC20, Ownable {
   using Sqrt for uint;
   uint immutable initialSupply;
-  uint founderPercentage = 10;
+  uint8 public founderPercentage;
 
   constructor(uint256 _initialSupply, string memory name, string memory symbol) ERC20(name, symbol) {
     _mint(msg.sender, _initialSupply);
     initialSupply = _initialSupply;
+    founderPercentage = 10;
   }
 
   event Minted(
@@ -48,8 +49,8 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     emit Minted(msg.sender, minted, amountForSender, amountForOwner);
   }
 
-  function changeFounderPercentage(uint _newPercentage) onlyOwner public {
-    require(_newPercentage < 100);
+  function changeFounderPercentage(uint8 _newPercentage) onlyOwner public {
+    require(_newPercentage <= 100);
     founderPercentage = _newPercentage;
   }
 
