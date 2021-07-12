@@ -11,10 +11,10 @@ import "hardhat/console.sol";
  */
 
 abstract contract Stakeable {
-  uint public minted;
+  uint public totalMinted;
   constructor() { }
   
   function _minted(uint amount) public {
-    minted += amount;
+    totalMinted += amount;
   }
 }

@@ -23,6 +23,7 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
   constructor(uint256 _initialSupply, string memory name, string memory symbol) ERC20(name, symbol) {
     _mint(msg.sender, _initialSupply);
     initialSupply = _initialSupply;
+    _minted(_initialSupply);
     founderPercentage = 10;
   }
 
@@ -34,8 +35,7 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
   );
 
   function stakeForNewTokens() public payable {
-    uint squareRootOfStakedAmount = address(this).balance.sqrt();
-		uint amountToMint = (squareRootOfStakedAmount / 10000);
+    uint amountToMint = (address(this).balance / (totalMinted * 1000000)).sqrt();
 
     if(amountToMint == 0) revert("not enough ETH for minting a token");
 
