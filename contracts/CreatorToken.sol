@@ -34,7 +34,7 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     uint amountDistributedToOwner 
   );
 
-  function stakeForNewTokens() public payable {
+  function stakeForNewTokens() external payable {
     uint amountToMint = (address(this).balance / (totalMinted * 1000000)).sqrt();
 
     if(amountToMint == 0) revert("not enough ETH for minting a token");
@@ -49,9 +49,17 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     emit Minted(msg.sender, minted, amountForSender, amountForOwner);
   }
 
-  function changeFounderPercentage(uint8 _newPercentage) onlyOwner public {
+  function changeFounderPercentage(uint8 _newPercentage) onlyOwner external {
     require(_newPercentage <= 100);
     founderPercentage = _newPercentage;
   }
 
+  function withdraw(uint _amount) external {
+    if(balanceOf(msg.sender) < _amount) revert("not enough tokens to withdraw");
+    uint _cashOutAmount = (totalMinted / _amount) * address(this).balance;
+    console.log(_cashOutAmount);
+    address payable _receiver = payable(msg.sender);
+    _receiver.transfer(_cashOutAmount);
+    _burn(_receiver, _amount);
+  }
 }

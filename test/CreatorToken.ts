@@ -122,8 +122,12 @@ describe("CreatorToken", () => {
       expect(senderBalance).to.equal(1000);
     })
   })
-  describe("Founder Percentage", () => {
+  describe("Withdrawals", () => {
+    const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
+    let provider: any;
+
     beforeEach(async () => {
+      provider = await ethers.getDefaultProvider();
       const Sqrt = await ethers.getContractFactory("Sqrt");
       const sqrtUtil = await Sqrt.deploy();
       await sqrtUtil.deployed();
@@ -138,8 +142,18 @@ describe("CreatorToken", () => {
       [owner, addr1, ...addresses] = await ethers.getSigners();
     })
 
-    it("", async () => {
-      expect(true).to.equal(true);
+    it("Should allow users to withdraw ETH from the contract", async () => {
+      await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
+      console.log(ethers.utils.formatEther(await owner.getBalance()));
+      await token.connect(owner).withdraw(1000);
+      console.log(ethers.utils.formatEther(await owner.getBalance()));
+      expect(await owner.getBalance()).to.equal(100);
+    })
+    it("Should not allow users to withdraw more tokens than what they own", async () => {
+      await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
+      await expect(
+        token.connect(addr1).withdraw(1000)
+      ).to.be.revertedWith("not enough tokens to withdraw");
     })
   })
 });
