@@ -143,12 +143,13 @@ describe("CreatorToken", () => {
     })
 
     it("Should allow users to withdraw ETH from the contract", async () => {
-      await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
-      console.log(ethers.utils.formatEther(await owner.getBalance()));
+      await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("10.0", "ether") });
+      let initialBalance = ethers.utils.formatEther(await owner.getBalance());
       await token.connect(owner).withdraw(1000);
-      console.log(ethers.utils.formatEther(await owner.getBalance()));
-      expect(await owner.getBalance()).to.equal(100);
+      let finalBalance = ethers.utils.formatEther(await owner.getBalance());
+      expect(finalBalance > initialBalance).to.equal(true);
     })
+
     it("Should not allow users to withdraw more tokens than what they own", async () => {
       await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
       await expect(

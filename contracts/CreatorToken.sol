@@ -6,6 +6,7 @@ import "./Stakeable.sol";
 import { Sqrt } from "./Math.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title CreatorToken
@@ -17,6 +18,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract CreatorToken is Stakeable, ERC20, Ownable {
   using Sqrt for uint;
+  using SafeMath for uint256;
   uint immutable initialSupply;
   uint8 public founderPercentage;
 
@@ -54,9 +56,9 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     founderPercentage = _newPercentage;
   }
 
-  function withdraw(uint _amount) external {
+  function withdraw(uint256 _amount) external {
     if(balanceOf(msg.sender) < _amount) revert("not enough tokens to withdraw");
-    uint _cashOutAmount = (totalMinted / _amount) * address(this).balance;
+    uint256 _cashOutAmount = (_amount * address(this).balance).div(totalMinted);
     console.log(_cashOutAmount);
     address payable _receiver = payable(msg.sender);
     _receiver.transfer(_cashOutAmount);
