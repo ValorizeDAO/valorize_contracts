@@ -143,11 +143,19 @@ describe("CreatorToken", () => {
     })
 
     it("Should allow users to withdraw ETH from the contract", async () => {
-      await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("10.0", "ether") });
-      let initialBalance = ethers.utils.formatEther(await owner.getBalance());
-      await token.connect(owner).withdraw(1000);
-      let finalBalance = ethers.utils.formatEther(await owner.getBalance());
-      expect(finalBalance > initialBalance).to.equal(true);
+      await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
+      
+      const initialContractBalance = ethers.utils.formatUnits(await token.getEthBalance(), "finney");
+      const initialUserBalance = ethers.utils.formatEther(await owner.getBalance());
+      const tokensInCirculation = (await token.totalSupply()).toNumber();
+      const tokenWithdrawalAmount = 1000;
+
+      const expectedBalance = tokenWithdrawalAmount * parseFloat(initialContractBalance) / (tokensInCirculation * 1000);
+
+      await token.connect(owner).withdraw(tokenWithdrawalAmount);
+      const finalUserBalance = ethers.utils.formatEther(await owner.getBalance());
+      const finalAccruedBalance = parseFloat(finalUserBalance) - parseFloat(initialUserBalance);
+      expect(floatIsWithinDelta(expectedBalance, finalAccruedBalance)).to.equal(true);
     })
 
     it("Should not allow users to withdraw more tokens than what they own", async () => {
@@ -158,3 +166,7 @@ describe("CreatorToken", () => {
     })
   })
 });
+
+const floatIsWithinDelta = (floatOne: number, floatTwo: number, delta = 0.001) : Boolean => {
+  return Math.abs(floatOne - floatTwo) < delta;
+}

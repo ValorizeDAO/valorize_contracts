@@ -59,9 +59,13 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
   function withdraw(uint256 _amount) external {
     if(balanceOf(msg.sender) < _amount) revert("not enough tokens to withdraw");
     uint256 _cashOutAmount = (_amount * address(this).balance).div(totalMinted);
-    console.log(_cashOutAmount);
     address payable _receiver = payable(msg.sender);
     _receiver.transfer(_cashOutAmount);
     _burn(_receiver, _amount);
   }
+
+	function getEthBalance() public view returns (uint256) {
+			return address(this).balance;
+	}
+
 }
