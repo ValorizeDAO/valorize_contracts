@@ -122,8 +122,12 @@ describe("CreatorToken", () => {
       expect(senderBalance).to.equal(1000);
     })
   })
-  describe("Founder Percentage", () => {
+  describe("Withdrawals", () => {
+    const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
+    let provider: any;
+
     beforeEach(async () => {
+      provider = await ethers.getDefaultProvider();
       const Sqrt = await ethers.getContractFactory("Sqrt");
       const sqrtUtil = await Sqrt.deploy();
       await sqrtUtil.deployed();
@@ -138,8 +142,31 @@ describe("CreatorToken", () => {
       [owner, addr1, ...addresses] = await ethers.getSigners();
     })
 
-    it("", async () => {
-      expect(true).to.equal(true);
+    it("Should allow users to withdraw ETH from the contract", async () => {
+      await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
+      
+      const initialContractBalance = ethers.utils.formatUnits(await token.getEthBalance(), "finney");
+      const initialUserBalance = ethers.utils.formatEther(await owner.getBalance());
+      const tokensInCirculation = (await token.totalSupply()).toNumber();
+      const tokenWithdrawalAmount = 1000;
+
+      const expectedBalance = tokenWithdrawalAmount * parseFloat(initialContractBalance) / (tokensInCirculation * 1000);
+
+      await token.connect(owner).withdraw(tokenWithdrawalAmount);
+      const finalUserBalance = ethers.utils.formatEther(await owner.getBalance());
+      const finalAccruedBalance = parseFloat(finalUserBalance) - parseFloat(initialUserBalance);
+      expect(floatIsWithinDelta(expectedBalance, finalAccruedBalance)).to.equal(true);
+    })
+
+    it("Should not allow users to withdraw more tokens than what they own", async () => {
+      await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
+      await expect(
+        token.connect(addr1).withdraw(1000)
+      ).to.be.revertedWith("not enough tokens to withdraw");
     })
   })
 });
+
+const floatIsWithinDelta = (floatOne: number, floatTwo: number, delta = 0.001) : Boolean => {
+  return Math.abs(floatOne - floatTwo) < delta;
+}

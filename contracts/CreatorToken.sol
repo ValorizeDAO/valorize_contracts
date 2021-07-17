@@ -6,6 +6,7 @@ import "./Stakeable.sol";
 import { Sqrt } from "./Math.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title CreatorToken
@@ -17,6 +18,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract CreatorToken is Stakeable, ERC20, Ownable {
   using Sqrt for uint;
+  using SafeMath for uint256;
   uint immutable initialSupply;
   uint8 public founderPercentage;
 
@@ -34,7 +36,7 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     uint amountDistributedToOwner 
   );
 
-  function stakeForNewTokens() public payable {
+  function stakeForNewTokens() external payable {
     uint amountToMint = (address(this).balance / (totalMinted * 1000000)).sqrt();
 
     if(amountToMint == 0) revert("not enough ETH for minting a token");
@@ -49,9 +51,21 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     emit Minted(msg.sender, minted, amountForSender, amountForOwner);
   }
 
-  function changeFounderPercentage(uint8 _newPercentage) onlyOwner public {
+  function changeFounderPercentage(uint8 _newPercentage) onlyOwner external {
     require(_newPercentage <= 100);
     founderPercentage = _newPercentage;
   }
+
+  function withdraw(uint256 _amount) external {
+    if(balanceOf(msg.sender) < _amount) revert("not enough tokens to withdraw");
+    uint256 _cashOutAmount = (_amount * address(this).balance).div(totalMinted);
+    address payable _receiver = payable(msg.sender);
+    _receiver.transfer(_cashOutAmount);
+    _burn(_receiver, _amount);
+  }
+
+	function getEthBalance() public view returns (uint256) {
+			return address(this).balance;
+	}
 
 }
