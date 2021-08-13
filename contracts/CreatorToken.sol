@@ -1,12 +1,11 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 import "./Stakeable.sol";
 import { Sqrt } from "./Math.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "../node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title CreatorToken
@@ -64,8 +63,18 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     _burn(_receiver, _amount);
   }
 
-	function getEthBalance() public view returns (uint256) {
-			return address(this).balance;
-	}
+  function getEthBalance() public view returns (uint256) {
+    return address(this).balance;
+  }
+
+  function calculateStakeReturns(uint256 _amount) public view returns (uint256, uint256){
+    uint amountToMint = (_amount / (totalMinted * 1000000)).sqrt();
+
+    if(amountToMint == 0) revert("not enough ETH for minting a token");
+
+    uint amountForSender = (amountToMint * (100 - founderPercentage) / 100 );
+    uint amountForOwner = (amountToMint * founderPercentage) / 100 ;
+    return (amountForSender, amountForOwner);
+  }
 
 }

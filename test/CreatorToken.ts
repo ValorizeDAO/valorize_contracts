@@ -165,6 +165,30 @@ describe("CreatorToken", () => {
       ).to.be.revertedWith("not enough tokens to withdraw");
     })
   })
+  describe("View", () => {
+    let provider: any;
+    const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
+
+    beforeEach(async () => {
+      provider = await ethers.getDefaultProvider();
+      const Sqrt = await ethers.getContractFactory("Sqrt");
+      const sqrtUtil = await Sqrt.deploy();
+      await sqrtUtil.deployed();
+
+      CreatorToken = await ethers.getContractFactory("CreatorToken", {
+        libraries: {
+          Sqrt: sqrtUtil.address
+        }
+      });
+      token = await CreatorToken.deploy(1000, "CreatorTest", "TST");
+      await token.deployed();
+      [owner, addr1, ...addresses] = await ethers.getSigners();
+    })
+    it("Should let users see how many tokens will be deployed", async () => {
+      const tokens = await token.connect(addr1).calculateStakeReturns(ethers.utils.parseUnits("1.0", "finney").toNumber())
+      expect(tokens[0].toNumber()).to.equal(900);
+    })
+  })
 });
 
 const floatIsWithinDelta = (floatOne: number, floatTwo: number, delta = 0.001) : Boolean => {
