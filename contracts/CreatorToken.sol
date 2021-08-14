@@ -68,7 +68,7 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
   }
 
   function calculateStakeReturns(uint256 _amount) public view returns (uint256, uint256){
-    uint amountToMint = (_amount / (totalMinted * 1000000)).sqrt();
+    uint amountToMint = (address(this).balance + _amount / (totalMinted * 1000000)).sqrt();
 
     if(amountToMint == 0) revert("not enough ETH for minting a token");
 
