@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import "./Stakeable.sol";
 import { Sqrt } from "./Math.sol";
-import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-import "../node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./@openzeppelin/contracts/access/Ownable.sol";
+import "./@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title CreatorToken
@@ -35,8 +35,12 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     uint amountDistributedToOwner 
   );
 
+  /**
+  * @dev the staking mechanism requires a 'deposit' of ETH into
+  *       the contract in order to generate a new token.
+  **/
   function stakeForNewTokens() external payable {
-    uint amountToMint = (address(this).balance / (totalMinted * 1000000)).sqrt();
+    uint amountToMint = _calculateStakingRewards(msg.value);
 
     if(amountToMint == 0) revert("not enough ETH for minting a token");
 
@@ -67,14 +71,17 @@ contract CreatorToken is Stakeable, ERC20, Ownable {
     return address(this).balance;
   }
 
-  function calculateStakeReturns(uint256 _amount) public view returns (uint256, uint256){
-    uint amountToMint = (address(this).balance + _amount / (totalMinted * 1000000)).sqrt();
-
-    if(amountToMint == 0) revert("not enough ETH for minting a token");
-
+  function getCurrentStakeReturns(uint256 _amount) public view returns (uint256, uint256){
+    uint amountToMint = _calculateStakingRewards(_amount);
     uint amountForSender = (amountToMint * (100 - founderPercentage) / 100 );
     uint amountForOwner = (amountToMint * founderPercentage) / 100 ;
+
     return (amountForSender, amountForOwner);
+  }
+
+  function _calculateStakingRewards(uint _stakingAmount) private view returns (uint256){
+    uint amountToMint = (_stakingAmount / (totalMinted * 1000000000)).sqrt();
+    return amountToMint;
   }
 
 }

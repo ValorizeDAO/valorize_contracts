@@ -36,7 +36,7 @@ describe("CreatorToken", () => {
     it("Should let user deposit ETH to mine tokens, giving 90% of newly minted tokens to person staking", async () => {
       await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("1.0", "finney").toNumber() })
       const senderBalance = await token.balanceOf(await addr1.getAddress())
-      expect(senderBalance).to.equal(900);
+      expect(senderBalance).to.equal(27);
     })
 
     it("Should give 10% of the newly minted tokens to the contract owner", async () => {
@@ -44,7 +44,7 @@ describe("CreatorToken", () => {
       await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("1.0", "finney").toNumber() })
       let newOwnerBalance = await token.balanceOf(await owner.getAddress())
       let ownerBalanceDiff = newOwnerBalance - ownerBalance
-      expect(ownerBalanceDiff).to.equal(100);
+      expect(ownerBalanceDiff).to.equal(3);
     })
 
     it("Should emit a creation event on minting", async () => {
@@ -52,17 +52,20 @@ describe("CreatorToken", () => {
       await expect(
         token.connect(addr1).stakeForNewTokens(msgMetadata))
         .to.emit(token, 'Minted')
-        .withArgs(await addr1.getAddress(), 1000, 900, 100);
+        .withArgs(await addr1.getAddress(), 30, 27, 3);
     })
 
     it("Should let user deposit ETH to mine tokens, with an increase in difficulty on each new minting", async () => {
-      const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() }
-      await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata)
+      const oneEthTxMetadata = { value: ethers.utils.parseEther(".0001") }
+      await token.connect(addr1).stakeForNewTokens(oneEthTxMetadata)
       let senderBalance = await token.balanceOf(await addr1.getAddress())
-      expect(senderBalance).to.equal(900);
-      await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata)
+      expect(senderBalance).to.equal(9);
+      await token.connect(addr1).stakeForNewTokens(oneEthTxMetadata)
       senderBalance = await token.balanceOf(await addr1.getAddress())
-      expect(senderBalance).to.equal(1800);
+      expect(senderBalance).to.equal(17);
+      await token.connect(addr1).stakeForNewTokens(oneEthTxMetadata)
+      senderBalance = await token.balanceOf(await addr1.getAddress())
+      expect(senderBalance).to.equal(25);
     })
   })
 
@@ -72,9 +75,9 @@ describe("CreatorToken", () => {
       const sqrtUtil = await Sqrt.deploy();
       await sqrtUtil.deployed();
 
-      CreatorToken = await ethers.getContractFactory("CreatorToken", { 
+      CreatorToken = await ethers.getContractFactory("CreatorToken", {
         libraries: {
-          Sqrt: sqrtUtil.address 
+          Sqrt: sqrtUtil.address
         }
       });
       token = await CreatorToken.deploy(1000, "CreatorTest", "TST");
@@ -90,7 +93,7 @@ describe("CreatorToken", () => {
       await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata);
       let newOwnerBalance = await token.balanceOf(await owner.getAddress())
       let ownerBalanceDiff = newOwnerBalance - ownerBalance;
-      expect(ownerBalanceDiff).to.equal(200);
+      expect(ownerBalanceDiff).to.equal(6);
     })
 
     it("Should not allow for a non founder to change the founder percentage", async () => {
@@ -105,7 +108,7 @@ describe("CreatorToken", () => {
         token.connect(owner).changeFounderPercentage(101)
       ).to.be.revertedWith('');
     })
-    
+
     it("Should not give all newly minted tokens to founder if percentage is 100", async () => {
       const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
       await token.connect(owner).changeFounderPercentage(100)
@@ -119,7 +122,7 @@ describe("CreatorToken", () => {
       await token.connect(owner).changeFounderPercentage(0)
       await token.connect(addr1).stakeForNewTokens(oneFinneyTxMetadata)
       const senderBalance = await token.balanceOf(await addr1.getAddress())
-      expect(senderBalance).to.equal(1000);
+      expect(senderBalance).to.equal(31);
     })
   })
   describe("Withdrawals", () => {
@@ -132,9 +135,9 @@ describe("CreatorToken", () => {
       const sqrtUtil = await Sqrt.deploy();
       await sqrtUtil.deployed();
 
-      CreatorToken = await ethers.getContractFactory("CreatorToken", { 
+      CreatorToken = await ethers.getContractFactory("CreatorToken", {
         libraries: {
-          Sqrt: sqrtUtil.address 
+          Sqrt: sqrtUtil.address
         }
       });
       token = await CreatorToken.deploy(1000, "CreatorTest", "TST");
@@ -144,7 +147,7 @@ describe("CreatorToken", () => {
 
     it("Should allow users to withdraw ETH from the contract", async () => {
       await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
-      
+
       const initialContractBalance = ethers.utils.formatUnits(await token.getEthBalance(), "finney");
       const initialUserBalance = ethers.utils.formatEther(await owner.getBalance());
       const tokensInCirculation = (await token.totalSupply()).toNumber();
@@ -185,8 +188,14 @@ describe("CreatorToken", () => {
       [owner, addr1, ...addresses] = await ethers.getSigners();
     })
     it("Should let users see how many tokens will be deployed", async () => {
-      const tokens = await token.connect(addr1).calculateStakeReturns(ethers.utils.parseUnits("1.0", "finney").toNumber())
-      expect(tokens[0].toNumber()).to.equal(900);
+      const tokens = await token.connect(addr1).getCurrentStakeReturns(ethers.utils.parseUnits("1.0", "finney").toNumber())
+      expect(tokens[0].toNumber()).to.equal(27);
+      expect(tokens[1].toNumber()).to.equal(3);
+    })
+    it("Should let users see how many tokens will be deployed", async () => {
+      await token.connect(addr1).stakeForNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
+      const tokens = await token.connect(addr1).getCurrentStakeReturns(ethers.utils.parseUnits("1.0", "finney").toNumber())
+      expect(tokens[0].toNumber()).to.equal(19);
     })
   })
 });
