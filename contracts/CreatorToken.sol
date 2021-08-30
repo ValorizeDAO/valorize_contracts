@@ -1,87 +1,153 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./Stakeable.sol";
-import { Sqrt } from "./Math.sol";
 import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./@openzeppelin/contracts/access/Ownable.sol";
 import "./@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./Stakeable.sol";
+import "./curves/BondingCurve.sol";
 
 /**
  * @title CreatorToken
  * @author Javier Gonzalez
  * @dev Implementation of a Creator Token.
- * @notice Creator Tokens are the basis of valorize.app. They stake 
+ * @notice Creator Tokens are the basis of valorize.app. They stake
  *         some amount of ether that can be traded out at any point.
  */
 
-contract CreatorToken is Stakeable, ERC20, Ownable {
-  using Sqrt for uint;
-  using SafeMath for uint256;
-  uint immutable initialSupply;
-  uint8 public founderPercentage;
+contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
+    using SafeMath for uint256;
+    uint256 immutable initialSupply;
+    uint8 public founderPercentage;
+    uint256 public reserveBalance = 10**18;
+    uint256 public reserveRatio;
 
-  constructor(uint256 _initialSupply, string memory name, string memory symbol) ERC20(name, symbol) {
-    _mint(msg.sender, _initialSupply);
-    initialSupply = _initialSupply;
-    _minted(_initialSupply);
-    founderPercentage = 10;
-  }
+    constructor(
+        uint256 _initialSupply,
+        uint256 _reserveRatio,
+        string memory name,
+        string memory symbol
+    ) ERC20(name, symbol) {
+        _mint(msg.sender, _initialSupply);
+        _minted(_initialSupply);
+        initialSupply = _initialSupply;
+        founderPercentage = 10;
+        reserveRatio = _reserveRatio;
+    }
 
-  event Minted(
-    address buyer, 
-    uint amountMinted, 
-    uint amountDistributedToBuyer, 
-    uint amountDistributedToOwner 
-  );
+    event ContinuousMint(
+        address _To,
+        uint256 _amountMinted,
+        uint256 _amountDeposited
+    );
 
-  /**
-  * @dev the staking mechanism requires a 'deposit' of ETH into
-  *       the contract in order to generate a new token.
-  **/
-  function stakeForNewTokens() external payable {
-    uint amountToMint = _calculateStakingRewards(msg.value);
+    event ContinuousBurn(
+        address _To,
+        uint256 _amountMinted,
+        uint256 _amountDeposited
+    );
 
-    if(amountToMint == 0) revert("not enough ETH for minting a token");
+    event Minted(
+        address buyer,
+        uint256 amountMinted,
+        uint256 amountDistributedToBuyer,
+        uint256 amountDistributedToOwner
+    );
 
-    uint amountForSender = ((amountToMint * (100 - founderPercentage) / 100 ));
-    uint amountForOwner = (amountToMint * founderPercentage) / 100 ;
+    /**
+     * @dev the staking mechanism requires a 'deposit' of ETH into
+     *       the contract in order to generate a new token.
+     **/
+    function buyNewTokens() external payable {
+        uint256 amountToMint = _calculatePurchaseReturns(msg.value);
 
-    _mint(msg.sender,  amountForSender);
-    _mint(owner(), amountForOwner);
-    uint minted = amountForSender + amountForOwner;
-		_minted(minted);// Because of rounding errors, this is preferable than using amountToMint
-    emit Minted(msg.sender, minted, amountForSender, amountForOwner);
-  }
+        if (amountToMint == 0) revert("not enough ETH for minting a token");
 
-  function changeFounderPercentage(uint8 _newPercentage) onlyOwner external {
-    require(_newPercentage <= 100);
-    founderPercentage = _newPercentage;
-  }
+        _mintAndDistribute(amountToMint);
+    }
 
-  function withdraw(uint256 _amount) external {
-    if(balanceOf(msg.sender) < _amount) revert("not enough tokens to withdraw");
-    uint256 _cashOutAmount = (_amount * address(this).balance).div(totalMinted);
-    address payable _receiver = payable(msg.sender);
-    _receiver.transfer(_cashOutAmount);
-    _burn(_receiver, _amount);
-  }
+    function _mintAndDistribute(uint256 amountToMint) internal {
+        uint256 amountForSender = (amountToMint * (100 - founderPercentage))
+            .div(100);
+        uint256 amountForOwner = (amountToMint * founderPercentage).div(100);
 
-  function getEthBalance() public view returns (uint256) {
-    return address(this).balance;
-  }
+        _mint(msg.sender, amountForSender);
+        _mint(owner(), amountForOwner);
 
-  function getCurrentStakeReturns(uint256 _amount) public view returns (uint256, uint256){
-    uint amountToMint = _calculateStakingRewards(_amount);
-    uint amountForSender = (amountToMint * (100 - founderPercentage) / 100 );
-    uint amountForOwner = (amountToMint * founderPercentage) / 100 ;
+        uint256 minted = amountForSender + amountForOwner;
+        _minted(minted); // Because of rounding errors, this is preferable than using amountToMint
 
-    return (amountForSender, amountForOwner);
-  }
+        emit Minted(msg.sender, minted, amountForSender, amountForOwner);
+    }
 
-  function _calculateStakingRewards(uint _stakingAmount) private view returns (uint256){
-    uint amountToMint = (_stakingAmount / (totalMinted * 1000000000)).sqrt();
-    return amountToMint;
-  }
+    // function _continuousMint(uint256 _deposit) internal returns (uint256) {
+    //     require(_deposit > 0, "Deposit must be non-zero.");
 
+    //     uint256 amount = calculateContinuousMintReturn(_deposit);
+    //     _mint(msg.sender, amount);
+    //     reserveBalance = reserveBalance.add(_deposit);
+    //     emit ContinuousMint(msg.sender, amount, _deposit);
+    //     return amount;
+    // }
+
+    // function _continuousBurn(uint256 _amount) internal returns (uint256) {
+    //     require(_amount > 0, "Amount must be non-zero.");
+    //     require(
+    //         balanceOf(msg.sender) >= _amount,
+    //         "Insufficient tokens to burn."
+    //     );
+
+    //     uint256 reimburseAmount = calculateContinuousBurnReturn(_amount);
+    //     reserveBalance = reserveBalance.sub(reimburseAmount);
+    //     _burn(msg.sender, _amount);
+    //     emit ContinuousBurn(msg.sender, _amount, reimburseAmount);
+    //     return reimburseAmount;
+    // }
+
+    function changeFounderPercentage(uint8 _newPercentage) external onlyOwner {
+        require(_newPercentage <= 100);
+        founderPercentage = _newPercentage;
+    }
+
+    function withdraw(uint256 _amount) external {
+        if (balanceOf(msg.sender) < _amount)
+            revert("not enough tokens to withdraw");
+        uint256 _cashOutAmount = (_amount * address(this).balance).div(
+            totalMinted
+        );
+        address payable _receiver = payable(msg.sender);
+        _receiver.transfer(_cashOutAmount);
+        _burn(_receiver, _amount);
+    }
+
+    function getEthBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getPurchaseReturnsFor(uint256 _amount)
+        public
+        view
+        returns (uint256, uint256)
+    {
+        uint256 amountToMint = _calculatePurchaseReturns(_amount);
+        uint256 amountForSender = ((amountToMint * (100 - founderPercentage)) /
+            100);
+        uint256 amountForOwner = (amountToMint * founderPercentage) / 100;
+
+        return (amountForSender, amountForOwner);
+    }
+
+    function _calculatePurchaseReturns(uint256 _amount)
+        internal
+        view
+        returns (uint256)
+    {
+        return
+            calculatePurchaseReturn(
+                totalSupply(),
+                reserveBalance,
+                uint32(reserveRatio),
+                _amount
+            );
+    }
 }
