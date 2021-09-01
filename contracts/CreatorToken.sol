@@ -14,12 +14,16 @@ import "./curves/BondingCurve.sol";
  * @notice Creator Tokens are the basis of valorize.app. They stake
  *         some amount of ether that can be traded out at any point.
  */
-
+// Price: the price of a single token
+// Supply: how many tokens have been issued by the market, and not redeemed, burned or destroyed (these are all synonym terms for tokens that are sold back to the market)
+// Reserve: how much value the market received for the tokens it has supplied to the market (ie tokens sold mnus tokens bought back)
+// Market capitalization: the theoretical value of the tokens issued by the market, if all of them could be sold at the current price.
+// Reserve ratio: the ratio between the Reserve and the Market capitalization (also known as “Market Cap”).
 contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
     using SafeMath for uint256;
     uint256 immutable initialSupply;
     uint8 public founderPercentage;
-    uint256 public reserveBalance = 10**18;
+    uint256 public reserveBalance = (10**18);
     uint256 public reserveRatio;
 
     constructor(
