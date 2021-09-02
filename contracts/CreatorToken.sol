@@ -133,7 +133,7 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
     }
 
     function changeFounderPercentage(uint8 _newPercentage) external onlyOwner {
-        require(_newPercentage <= 100);
+        require(_newPercentage <= 100, "Founder percentage must be less than 100");
         founderPercentage = _newPercentage;
     }
 
