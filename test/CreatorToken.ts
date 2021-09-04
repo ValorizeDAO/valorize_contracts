@@ -120,49 +120,32 @@ describe("CreatorToken", () => {
       expect(senderBalance).to.equal(0);
     })
 
-  //   it("Should not give any newly minted tokens to founder if percentage is 0", async () => {
-  //     const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
-  //     await token.connect(owner).changeFounderPercentage(0)
-  //     await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata)
-  //     const senderBalance = await token.balanceOf(await addr1.getAddress())
-  //     expect(senderBalance).to.equal(31);
-  //   })
-  // })
-  // describe("Withdrawals", () => {
-  //   const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
-  //   let provider: any;
+    it("Should not give any newly minted tokens to founder if percentage is 0", async () => {
+      const oneFinneyTxMetadata = { value: ONE_FINNEY };
+      await token.connect(owner).changeFounderPercentage(0)
+      await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata)
+      const senderBalance = await token.balanceOf(await addr1.getAddress())
+      expect(senderBalance).to.equal(ethers.BigNumber.from("799920031982411256"));
+    })
+  })
+  describe("Withdrawals", () => {
+    const oneFinneyTxMetadata = { value: ONE_FINNEY };
 
-  //   beforeEach(async () => {
-  //     provider = await ethers.getDefaultProvider();
-  //     const Sqrt = await ethers.getContractFactory("Sqrt");
-  //     const sqrtUtil = await Sqrt.deploy();
-  //     await sqrtUtil.deployed();
+    beforeEach(setupCreatorToken);
 
-  //     CreatorToken = await ethers.getContractFactory("CreatorToken", {
-  //       libraries: {
-  //         Sqrt: sqrtUtil.address
-  //       }
-  //     });
-  //     token = await CreatorToken.deploy(1000, "CreatorTest", "TST");
-  //     await token.deployed();
-  //     [owner, addr1, ...addresses] = await ethers.getSigners();
-  //   })
+    it("Should allow users to withdraw ETH from the contract", async () => {
+      const tokensInCirculationOne = ethers.utils.formatEther(await token.totalSupply());
+      await token.connect(owner).buyNewTokens(oneFinneyTxMetadata);
+      const initialContractBalance = ethers.utils.formatUnits(await token.getEthBalance(), "ether");
+      const initialOwnerBalance = ethers.utils.formatEther(await owner.getBalance());
+      const ownerSupply = await token.connect(owner).balanceOf(await owner.getAddress())
+      console.log({ ownerSupply: ownerSupply.toString() });
 
-  //   it("Should allow users to withdraw ETH from the contract", async () => {
-  //     await token.connect(addr1).buyNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
-
-  //     const initialContractBalance = ethers.utils.formatUnits(await token.getEthBalance(), "finney");
-  //     const initialUserBalance = ethers.utils.formatEther(await owner.getBalance());
-  //     const tokensInCirculation = (await token.totalSupply()).toNumber();
-  //     const tokenWithdrawalAmount = 1000;
-
-  //     const expectedBalance = tokenWithdrawalAmount * parseFloat(initialContractBalance) / (tokensInCirculation * 1000);
-
-  //     await token.connect(owner).withdraw(tokenWithdrawalAmount);
-  //     const finalUserBalance = ethers.utils.formatEther(await owner.getBalance());
-  //     const finalAccruedBalance = parseFloat(finalUserBalance) - parseFloat(initialUserBalance);
-  //     expect(floatIsWithinDelta(expectedBalance, finalAccruedBalance)).to.equal(true);
-  //   })
+      await token.connect(owner).withdraw(ownerSupply);
+      // const finalOwnerBalance = ethers.utils.formatEther(await owner.getBalance());
+      // const finalAccruedBalance = parseFloat(finalOwnerBalance) - parseFloat(initialOwnerBalance);
+      // expect(floatIsWithinDelta(expectedBalance, finalAccruedBalance)).to.equal(true);
+    })
 
   //   it("Should not allow users to withdraw more tokens than what they own", async () => {
   //     await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata);

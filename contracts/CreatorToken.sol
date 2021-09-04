@@ -34,13 +34,7 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
         reserveRatio = _reserveRatio;
     }
 
-    event ContinuousMint(
-        address _To,
-        uint256 _amountMinted,
-        uint256 _amountDeposited
-    );
-
-    event ContinuousBurn(
+    event Burned(
         address _To,
         uint256 _amountMinted,
         uint256 _amountDeposited
@@ -65,15 +59,20 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
         uint256 amountToMint = calculateTotalMintAmount(msg.value);
         _mintAndDistribute(amountToMint, msg.value);
     }
-    function withdraw(uint256 _amount) external {
-        if (balanceOf(msg.sender) < _amount)
-            revert("not enough tokens to withdraw");
-        uint256 _cashOutAmount = (_amount * address(this).balance).div(
-            totalMinted
+    function sellTokensForEth(uint256 _amount) external {
+        require(_amount > 0, "Amount must be non-zero.");
+        require(
+            balanceOf(msg.sender) >= _amount,
+            "Insufficient tokens to burn."
         );
-        address payable _receiver = payable(msg.sender);
-        _receiver.transfer(_cashOutAmount);
-        _burn(_receiver, _amount);
+        uint256 reimburseAmount = calculateTotalSaleReturn(_amount);
+        if(payable(msg.sender).send(reimburseAmount)){
+            reserveBalance = reserveBalance.sub(reimburseAmount);
+            _burn(msg.sender, _amount);
+            emit Burned(msg.sender, _amount, reimburseAmount);
+        } else {
+            revert("withdrawing failed");
+        }
     }
 
     function _mintAndDistribute(uint256 amountToMint, uint256 _deposit) internal {
@@ -104,7 +103,7 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
             );
     }
 
-    function calculateContinuousBurnReturn(uint256 _amount)
+    function calculateTotalSaleReturn(uint256 _amount)
         internal
         view
         returns (uint256 burnAmount)
@@ -118,19 +117,6 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
             );
     }
 
-    function _continuousBurn(uint256 _amount) internal returns (uint256) {
-        require(_amount > 0, "Amount must be non-zero.");
-        require(
-            balanceOf(msg.sender) >= _amount,
-            "Insufficient tokens to burn."
-        );
-
-        uint256 reimburseAmount = calculateContinuousBurnReturn(_amount);
-        reserveBalance = reserveBalance.sub(reimburseAmount);
-        _burn(msg.sender, _amount);
-        emit ContinuousBurn(msg.sender, _amount, reimburseAmount);
-        return reimburseAmount;
-    }
 
     function changeFounderPercentage(uint8 _newPercentage) external onlyOwner {
         require(_newPercentage <= 100, "Founder percentage must be less than 100");
