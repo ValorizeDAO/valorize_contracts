@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./@openzeppelin/contracts/access/Ownable.sol";
 import "./@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./Stakeable.sol";
 import "./curves/BondingCurve.sol";
 
 /**
@@ -14,7 +13,7 @@ import "./curves/BondingCurve.sol";
  * @notice Creator Tokens are the basis of valorize.app. They stake
  *         some amount of ether that can be traded out at any point.
  */
-contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
+contract CreatorToken is BondingCurve, ERC20, Ownable {
     using SafeMath for uint256;
     uint256 immutable initialSupply;
     uint8 public founderPercentage;
@@ -27,8 +26,10 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
-        _mint(msg.sender, _initialSupply);
-        _minted(_initialSupply);
+        if(_initialSupply > 0){
+            _mint(msg.sender, _initialSupply);
+            reserveBalance.add(_initialSupply);
+        }
         initialSupply = _initialSupply;
         founderPercentage = 10;
         reserveRatio = _reserveRatio;
@@ -63,7 +64,7 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
         require(_amount > 0, "Amount must be non-zero.");
         require(
             balanceOf(msg.sender) >= _amount,
-            "Insufficient tokens to burn."
+            "not enough tokens to sell"
         );
         uint256 reimburseAmount = calculateTotalSaleReturn(_amount);
         if(payable(msg.sender).send(reimburseAmount)){
@@ -83,8 +84,7 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
         _mint(msg.sender, amountForSender);
         _mint(owner(), amountForOwner);
 
-        uint256 minted = amountForSender + amountForOwner;
-        _minted(minted); // Because of rounding errors, this is preferable than using amountToMint
+        uint256 minted = amountForSender + amountForOwner; // Because of rounding errors, this is preferable than using amountToMint
         reserveBalance = reserveBalance.add(_deposit);
         emit Minted(msg.sender, _deposit, minted, amountForSender, amountForOwner);
     }
@@ -111,7 +111,7 @@ contract CreatorToken is BondingCurve, Stakeable, ERC20, Ownable {
         return
             calculateSaleReturn(
                 totalSupply(),
-                reserveBalance,
+                address(this).balance,
                 uint32(reserveRatio),
                 _amount
             );

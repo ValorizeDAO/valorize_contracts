@@ -1,7 +1,6 @@
 pragma solidity ^0.8.0;
 import "./Power.sol";
 import "../@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "hardhat/console.sol";
 
 /**
  * Bancor formula by Bancor
@@ -82,12 +81,11 @@ abstract contract BondingCurve is Power {
         // validate input
         require(
             _supply > 0 &&
-                _connectorBalance > 0 &&
-                _connectorWeight > 0 &&
-                _connectorWeight <= MAX_WEIGHT &&
-                _sellAmount <= _supply
+            _connectorBalance > 0 &&
+            _connectorWeight > 0 &&
+            _connectorWeight <= MAX_WEIGHT &&
+            _sellAmount <= _supply
         );
-
         // special case for 0 sell amount
         if (_sellAmount == 0) return 0;
 
@@ -110,14 +108,5 @@ abstract contract BondingCurve is Power {
         uint256 temp1 = _connectorBalance.mul(result);
         uint256 temp2 = _connectorBalance << precision;
         return temp1.sub(temp2).div(result);
-    }
-
-    function sqrt(uint256 x) internal pure returns (uint256 y) {
-        uint256 z = (x.add(1)).div(2);
-        y = x;
-        while (z < y) {
-            y = z;
-            z = ((x.div(z)).add(z)).div(2);
-        }
     }
 }
