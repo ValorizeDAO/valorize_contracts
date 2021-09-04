@@ -5,9 +5,9 @@ import { solidity } from "ethereum-waffle";
 
 chai.use(solidity);
 const { expect } = chai;
-const INITIAL_SUPPLY_AMOUNT = ethers.BigNumber.from("1000000000000000000000");
-const ONE_FINNEY = ethers.utils.parseUnits("1.0", "finney")
-const ONE_ETH = ethers.utils.parseUnits("1.0", "ether")
+const INITIAL_SUPPLY_AMOUNT = ethers.BigNumber.from("1000000000000000000000") as BigNumber;
+const ONE_FINNEY = ethers.utils.parseUnits("1.0", "finney") as BigNumber;
+const ONE_ETH = ethers.utils.parseUnits("1.0", "ether") as BigNumber;
 
 
 describe("CreatorToken", () => {
@@ -146,16 +146,12 @@ describe("CreatorToken", () => {
     })
 
     it("The ETH withdrawal should be proportionate to the balance in the contract", async () => {
-      await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata);
-      console.log("ContractBalanceAfterBuyingFirstToken:", (await token.getEthBalance() as BigNumber).toString())
+      await token.connect(addr1).buyNewTokens({ value: ONE_ETH });
       const initialUserEthBalance = await addr1.getBalance() as BigNumber;
-      console.log("InitialUserBalance:", initialUserEthBalance.toString());
-      const userTokenBalance = await token.connect(addr1).balanceOf(await addr1.getAddress()) as BigNumber
-      await token.connect(addr1).sellTokensForEth(userTokenBalance);
-      console.log("ContractBalanceAfterSellingToken:", (await token.getEthBalance() as BigNumber).toString())
-      
+      const userTokenBalance = await token.connect(addr1).balanceOf(await addr1.getAddress()) as BigNumber;
+
+      await token.connect(addr1).sellTokensForEth(userTokenBalance);      
       const finalUserEthBalance = await addr1.getBalance() as BigNumber;
-      console.log("final User Balance:", finalUserEthBalance.toString());
       
       expect(finalUserEthBalance.gt(initialUserEthBalance)).to.equal(true);
     })
