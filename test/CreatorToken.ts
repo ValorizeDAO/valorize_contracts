@@ -13,10 +13,10 @@ const ONE_ETH = ethers.utils.parseUnits("1.0", "ether") as BigNumber;
 describe("CreatorToken", () => {
   let CreatorToken: any, token: Contract, owner: Signer, addr1: Signer, addresses: Signer[]
   const setupCreatorToken = async () => {
-        CreatorToken = await ethers.getContractFactory("CreatorToken");
-        token = await CreatorToken.deploy(INITIAL_SUPPLY_AMOUNT, 800000, "CreatorTest", "TST");
-        await token.deployed();
-        [owner, addr1, ...addresses] = await ethers.getSigners();
+    CreatorToken = await ethers.getContractFactory("CreatorToken");
+    token = await CreatorToken.deploy(INITIAL_SUPPLY_AMOUNT, 800000, "CreatorTest", "TST");
+    await token.deployed();
+    [owner, addr1, ...addresses] = await ethers.getSigners();
   }
 
   describe("Deployment", () => {
@@ -165,36 +165,28 @@ describe("CreatorToken", () => {
       ).to.be.revertedWith("not enough tokens to sell");
     })
   })
-  // describe("View", () => {
-  //   let provider: any;
-  //   const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
+  describe("View", () => {
+    beforeEach(setupCreatorToken)
 
-  //   beforeEach(async () => {
-  //     provider = await ethers.getDefaultProvider();
-  //     const Sqrt = await ethers.getContractFactory("Sqrt");
-  //     const sqrtUtil = await Sqrt.deploy();
-  //     await sqrtUtil.deployed();
+    it("Should let users see how many tokens will be deployed", async () => {
+      console.group("calc")
+      const [toBuyer, toOwner] = await token.connect(addr1).calculateTokenBuyReturns(ONE_FINNEY)
+      console.groupEnd()
+      expect(toBuyer.toString()).to.equal('666991013933023450444');
+      expect(toOwner.toString()).to.equal('74110112659224827827');
+      console.group("buy")
+      await token.connect(addr1).buyNewTokens({ value: ONE_FINNEY });
+      console.groupEnd()
+      expect(await token.connect(addr1).balanceOf(await addr1.getAddress())).to.equal(toBuyer)
+    })
 
-  //     CreatorToken = await ethers.getContractFactory("CreatorToken", {
-  //       libraries: {
-  //         Sqrt: sqrtUtil.address
-  //       }
-  //     });
-  //     token = await CreatorToken.deploy(1000, "CreatorTest", "TST");
-  //     await token.deployed();
-  //     [owner, addr1, ...addresses] = await ethers.getSigners();
-  //   })
-  //   it("Should let users see how many tokens will be deployed", async () => {
-  //     const tokens = await token.connect(addr1).getCurrentStakeReturns(ethers.utils.parseUnits("1.0", "finney").toNumber())
-  //     expect(tokens[0].toNumber()).to.equal(27);
-  //     expect(tokens[1].toNumber()).to.equal(3);
-  //   })
-  //   it("Should let users see how many tokens will be deployed", async () => {
-  //     await token.connect(addr1).buyNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
-  //     const tokens = await token.connect(addr1).getCurrentStakeReturns(ethers.utils.parseUnits("1.0", "finney").toNumber())
-  //     expect(tokens[0].toNumber()).to.equal(19);
-  //   })
-  // })
+    // it("Should let users see how many tokens will be deployed", async () => {
+    //   await token.connect(addr1).buyNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
+    //   const tokens = await token.connect(addr1).calculateTokenBuyReturns(ONE_FINNEY)
+    //   expect(tokens[0].toString()).to.equal('1252215411703743791');
+    // })
+
+  })
 });
 
 const floatDifferenceIsWithinDelta = (floatOne: number, floatTwo: number, delta = 0.001) : Boolean => {

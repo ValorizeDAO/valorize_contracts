@@ -97,7 +97,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         return
             calculatePurchaseReturn(
                 totalSupply(),
-                reserveBalance,
+                address(this).balance,
                 uint32(reserveRatio),
                 _deposit
             );
@@ -128,30 +128,19 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         return address(this).balance;
     }
 
-    function getPurchaseReturnsFor(uint256 _amount)
+    function calculateTokenBuyReturns(uint256 _amount)
         public
         view
-        returns (uint256, uint256)
+        returns (uint256 amountForSender, uint256 amountForOwner)
     {
-        uint256 amountToMint = _calculatePurchaseReturns(_amount);
-        uint256 amountForSender = ((amountToMint * (100 - founderPercentage)) /
-            100);
-        uint256 amountForOwner = (amountToMint * founderPercentage) / 100;
-
-        return (amountForSender, amountForOwner);
-    }
-
-    function _calculatePurchaseReturns(uint256 _amount)
-        internal
-        view
-        returns (uint256)
-    {
-        return
-            calculatePurchaseReturn(
+        uint256 amountToMint = calculatePurchaseReturn(
                 totalSupply(),
-                address(this).balance,
+                address(this).balance + _amount,
                 uint32(reserveRatio),
                 _amount
             );
+        amountForSender = (amountToMint * (100 - founderPercentage))
+            .div(100);
+        amountForOwner = (amountToMint * founderPercentage).div(100);
     }
 }
