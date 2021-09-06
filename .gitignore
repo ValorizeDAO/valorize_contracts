@@ -1,6 +1,10 @@
+.DS_Store
+.idea
 node_modules
 
 #Hardhat files
 cache
 artifacts
 typechain
+build
+contracts/@*
