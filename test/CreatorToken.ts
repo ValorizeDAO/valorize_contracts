@@ -49,8 +49,8 @@ describe("CreatorToken", () => {
 
     it("Should emit a creation event on minting", async () => {
       const msgMetadata = { value: ONE_FINNEY }
-      const expectedTotal = ethers.BigNumber.from("799920031982411255") as BigNumber;
-      const expectedBuyer = ethers.BigNumber.from("719928028784170130");
+      const expectedTotal = ethers.BigNumber.from("741101126592248278271") as BigNumber;
+      const expectedBuyer = ethers.BigNumber.from("666991013933023450444");
       const expectedOwner = expectedTotal.mul(10).div(100)
       await expect(
         token.connect(addr1).buyNewTokens(msgMetadata))
@@ -97,7 +97,7 @@ describe("CreatorToken", () => {
       await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata);
       let newOwnerBalance = await token.balanceOf(await owner.getAddress())
       let ownerBalanceDiff = newOwnerBalance - ownerBalance;
-      expect(ownerBalanceDiff).to.equal(159984006396510200);
+      expect(ownerBalanceDiff).to.equal(148220225318449700000);
     })
 
     it("Should not allow for a non founder to change the founder percentage", async () => {
@@ -124,9 +124,12 @@ describe("CreatorToken", () => {
     it("Should not give any newly minted tokens to founder if percentage is 0", async () => {
       const oneFinneyTxMetadata = { value: ONE_FINNEY };
       await token.connect(owner).changeFounderPercentage(0)
+      const ownerTokenBalance = await token.balanceOf(await owner.getAddress());
       await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata)
+      const ownerTokenBalanceAfterTransaction = await token.balanceOf(await owner.getAddress());
       const senderBalance = await token.balanceOf(await addr1.getAddress())
-      expect(senderBalance).to.equal(ethers.BigNumber.from("799920031982411256"));
+      expect(senderBalance).to.equal(ethers.BigNumber.from("741101126592248278272"));
+      expect(ownerTokenBalance).to.equal(ownerTokenBalanceAfterTransaction)
     })
   })
   describe("Withdrawals", () => {
@@ -169,22 +172,18 @@ describe("CreatorToken", () => {
     beforeEach(setupCreatorToken)
 
     it("Should let users see how many tokens will be deployed", async () => {
-      console.group("calc")
       const [toBuyer, toOwner] = await token.connect(addr1).calculateTokenBuyReturns(ONE_FINNEY)
-      console.groupEnd()
       expect(toBuyer.toString()).to.equal('666991013933023450444');
       expect(toOwner.toString()).to.equal('74110112659224827827');
-      console.group("buy")
       await token.connect(addr1).buyNewTokens({ value: ONE_FINNEY });
-      console.groupEnd()
       expect(await token.connect(addr1).balanceOf(await addr1.getAddress())).to.equal(toBuyer)
     })
 
-    // it("Should let users see how many tokens will be deployed", async () => {
-    //   await token.connect(addr1).buyNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
-    //   const tokens = await token.connect(addr1).calculateTokenBuyReturns(ONE_FINNEY)
-    //   expect(tokens[0].toString()).to.equal('1252215411703743791');
-    // })
+    it("Should let users see how many tokens will be deployed", async () => {
+      await token.connect(addr1).buyNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
+      const tokens = await token.connect(addr1).calculateTokenBuyReturns(ONE_FINNEY)
+      expect(tokens[0].toString()).to.equal('1252215411703743791');
+    })
 
   })
 });
