@@ -1,18 +1,12 @@
 pragma solidity ^0.8.0;
 import "./Power.sol";
-import "../@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * Bancor formula by Bancor
  * https://github.com/bancorprotocol/contracts
- * Modified from the original by Slava Balasanov
- * Split Power.sol out from BancorFormula.sol and replace SafeMath formulas with zeppelin's SafeMath
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements;
- * and to You under the Apache License, Version 2.0. "
+ * Modified by Javier Gonzalez
  */
 abstract contract BondingCurve is Power {
-    using SafeMath for uint256;
-
     string public version = "0.3";
     uint32 private constant MAX_WEIGHT = 1000000;
 
@@ -46,18 +40,18 @@ abstract contract BondingCurve is Power {
 
         // special case if the weight = 100%
         if (_connectorWeight == MAX_WEIGHT)
-            return safeMul(_supply, _depositAmount) / _connectorBalance;
+            return (_supply * _depositAmount) / _connectorBalance;
 
         uint256 result;
         uint8 precision;
-        uint256 baseN = safeAdd(_depositAmount, _connectorBalance);
+        uint256 baseN = _depositAmount + _connectorBalance;
         (result, precision) = power(
             baseN,
             _connectorBalance,
             _connectorWeight,
             MAX_WEIGHT
         );
-        uint256 temp = safeMul(_supply, result) >> precision;
+        uint256 temp = (_supply * result) >> precision;
         return temp - _supply;
     }
 
@@ -94,7 +88,7 @@ abstract contract BondingCurve is Power {
 
         // special case if the weight = 100%
         if (_connectorWeight == MAX_WEIGHT)
-            return _connectorBalance.mul(_sellAmount).div(_supply);
+            return (_connectorBalance *_sellAmount) / _supply;
 
         uint256 result;
         uint8 precision;
@@ -105,8 +99,8 @@ abstract contract BondingCurve is Power {
             MAX_WEIGHT,
             _connectorWeight
         );
-        uint256 temp1 = _connectorBalance.mul(result);
+        uint256 temp1 = _connectorBalance * result;
         uint256 temp2 = _connectorBalance << precision;
-        return temp1.sub(temp2).div(result);
+        return (temp1 - temp2) / result;
     }
 }

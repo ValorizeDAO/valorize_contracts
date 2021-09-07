@@ -16,9 +16,9 @@ import "./curves/BondingCurve.sol";
 contract CreatorToken is BondingCurve, ERC20, Ownable {
     using SafeMath for uint256;
     uint256 immutable initialSupply;
-    uint8 public founderPercentage;
     uint256 public reserveBalance = (10**18);
     uint256 public reserveRatio;
+    uint256 public founderPercentage;
 
     constructor(
         uint256 _initialSupply,
@@ -26,20 +26,16 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
-        if(_initialSupply > 0){
+        if (_initialSupply > 0) {
             _mint(msg.sender, _initialSupply);
-            reserveBalance.add(_initialSupply);
+            reserveBalance + _initialSupply;
         }
         initialSupply = _initialSupply;
         founderPercentage = 10;
         reserveRatio = _reserveRatio;
     }
 
-    event Burned(
-        address _To,
-        uint256 _amountMinted,
-        uint256 _amountDeposited
-    );
+    event Burned(address _To, uint256 _amountMinted, uint256 _amountDeposited);
 
     event Minted(
         address buyer,
@@ -60,15 +56,17 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         uint256 amountToMint = calculateTotalMintAmount(msg.value);
         _mintAndDistribute(amountToMint, msg.value);
     }
+
+    /**
+     * @dev the sell mechanism also based on Bancor sells tokens directly 
+     *      to the contract which then burns them in exchange for eth.
+     **/
     function sellTokensForEth(uint256 _amount) external {
         require(_amount > 0, "Amount must be non-zero.");
-        require(
-            balanceOf(msg.sender) >= _amount,
-            "not enough tokens to sell"
-        );
+        require(balanceOf(msg.sender) >= _amount, "not enough tokens to sell");
         uint256 reimburseAmount = calculateTotalSaleReturn(_amount);
-        if(payable(msg.sender).send(reimburseAmount)){
-            reserveBalance = reserveBalance.sub(reimburseAmount);
+        if (payable(msg.sender).send(reimburseAmount)) {
+            reserveBalance = reserveBalance - reimburseAmount;
             _burn(msg.sender, _amount);
             emit Burned(msg.sender, _amount, reimburseAmount);
         } else {
@@ -76,17 +74,30 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         }
     }
 
-    function _mintAndDistribute(uint256 amountToMint, uint256 _deposit) internal {
-        uint256 amountForSender = (amountToMint * (100 - founderPercentage))
-            .div(100);
-        uint256 amountForOwner = (amountToMint * founderPercentage).div(100);
 
+    /**
+     * @dev tokens get ditributed according to the percentage defined by founderPercentage
+     **/
+    function _mintAndDistribute(uint256 amountToMint, uint256 _deposit)
+        internal
+    {
+        (
+            uint256 amountForSender,
+            uint256 amountForOwner
+        ) = splitAmountToFounderAndBuyer(amountToMint, founderPercentage);
         _mint(msg.sender, amountForSender);
+
         _mint(owner(), amountForOwner);
 
         uint256 minted = amountForSender + amountForOwner; // Because of rounding errors, this is preferable than using amountToMint
-        reserveBalance = reserveBalance.add(_deposit);
-        emit Minted(msg.sender, _deposit, minted, amountForSender, amountForOwner);
+        reserveBalance = reserveBalance + _deposit;
+        emit Minted(
+            msg.sender,
+            _deposit,
+            minted,
+            amountForSender,
+            amountForOwner
+        );
     }
 
     function calculateTotalMintAmount(uint256 _deposit)
@@ -117,12 +128,16 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
             );
     }
 
-
-    function changeFounderPercentage(uint8 _newPercentage) external onlyOwner {
-        require(_newPercentage <= 100, "Founder percentage must be less than 100");
+    function changeFounderPercentage(uint256 _newPercentage)
+        external
+        onlyOwner
+    {
+        require(
+            _newPercentage <= 100,
+            "Founder percentage must be less than 100"
+        );
         founderPercentage = _newPercentage;
     }
-
 
     function getEthBalance() public view returns (uint256) {
         return address(this).balance;
@@ -131,16 +146,23 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
     function calculateTokenBuyReturns(uint256 _amount)
         public
         view
-        returns (uint256 amountForSender, uint256 amountForOwner)
+        returns (uint256, uint256)
     {
         uint256 amountToMint = calculatePurchaseReturn(
-                totalSupply(),
-                address(this).balance + _amount,
-                uint32(reserveRatio),
-                _amount
-            );
-        amountForSender = (amountToMint * (100 - founderPercentage))
-            .div(100);
-        amountForOwner = (amountToMint * founderPercentage).div(100);
+            totalSupply(),
+            address(this).balance + _amount,
+            uint32(reserveRatio),
+            _amount
+        );
+        return splitAmountToFounderAndBuyer(amountToMint, founderPercentage);
+    }
+
+    function splitAmountToFounderAndBuyer(uint256 amount, uint256 percentage)
+        internal
+        pure
+        returns (uint256 amountForSender, uint256 amountForOwner)
+    {
+        amountForSender = (amount * (100 - percentage)) / 100;
+        amountForOwner = (amount * percentage) / 100;
     }
 }
