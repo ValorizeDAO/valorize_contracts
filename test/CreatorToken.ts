@@ -35,7 +35,7 @@ describe("CreatorToken", () => {
       await token.connect(addr1).buyNewTokens({ value: ONE_ETH })
       
       const senderBalance = await token.balanceOf(await addr1.getAddress())
-      const expected = ethers.BigNumber.from("666991013933023450444")
+      const expected = ethers.BigNumber.from("40764525136982090668373")
       expect(senderBalance).to.equal(expected);
     })
 
@@ -44,13 +44,13 @@ describe("CreatorToken", () => {
       await token.connect(addr1).buyNewTokens({ value: ONE_ETH })
       let newOwnerBalance = await token.balanceOf(await owner.getAddress()) as BigNumber;
       let ownerBalanceDiff = newOwnerBalance.sub(ownerBalance)
-      expect(ownerBalanceDiff).to.equal(ethers.BigNumber.from("74110112659224827827"));
+      expect(ownerBalanceDiff).to.equal(ethers.BigNumber.from("4529391681886898963152"));
     })
 
     it("Should emit a creation event on minting", async () => {
       const msgMetadata = { value: ONE_FINNEY }
-      const expectedTotal = ethers.BigNumber.from("741101126592248278271") as BigNumber;
-      const expectedBuyer = ethers.BigNumber.from("666991013933023450444");
+      const expectedTotal = ethers.BigNumber.from("93204408653311889782") as BigNumber;
+      const expectedBuyer = ethers.BigNumber.from("83883967787980700804");
       const expectedOwner = expectedTotal.mul(10).div(100)
       await expect(
         token.connect(addr1).buyNewTokens(msgMetadata))
@@ -60,18 +60,16 @@ describe("CreatorToken", () => {
 
     it("Should let user buy tokens from the contract, and the price increasing the more ether is staked", async () => {
       const oneEthTxMetadata = { value: ONE_ETH }
+      const twoEthTxMetadata = { value: ONE_ETH.mul(ethers.BigNumber.from("2")) }
       await token.connect(addr1).buyNewTokens(oneEthTxMetadata)
       let senderBalance = await token.balanceOf(await addr1.getAddress()) as BigNumber;
       let senderBalanceFirst = senderBalance
-
       await token.connect(addr1).buyNewTokens(oneEthTxMetadata)
       senderBalance = await token.balanceOf(await addr1.getAddress());
       let senderBalanceSecond = senderBalance
-
       await token.connect(addr1).buyNewTokens(oneEthTxMetadata)
       senderBalance = await token.balanceOf(await addr1.getAddress());
       let senderBalanceThird = senderBalance
-
       await token.connect(addr1).buyNewTokens(oneEthTxMetadata)
       senderBalance = await token.balanceOf(await addr1.getAddress());
       let senderBalanceFourth = senderBalance
@@ -97,7 +95,7 @@ describe("CreatorToken", () => {
       await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata);
       let newOwnerBalance = await token.balanceOf(await owner.getAddress())
       let ownerBalanceDiff = newOwnerBalance - ownerBalance;
-      expect(ownerBalanceDiff).to.equal(148220225318449700000);
+      expect(ownerBalanceDiff).to.equal(18640881730662433000);
     })
 
     it("Should not allow for a non founder to change the founder percentage", async () => {
@@ -128,7 +126,7 @@ describe("CreatorToken", () => {
       await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata)
       const ownerTokenBalanceAfterTransaction = await token.balanceOf(await owner.getAddress());
       const senderBalance = await token.balanceOf(await addr1.getAddress())
-      expect(senderBalance).to.equal(ethers.BigNumber.from("741101126592248278272"));
+      expect(senderBalance).to.equal(ethers.BigNumber.from("93204408653311889783"));
       expect(ownerTokenBalance).to.equal(ownerTokenBalanceAfterTransaction)
     })
   })
@@ -173,16 +171,19 @@ describe("CreatorToken", () => {
 
     it("Should let users see how many tokens will be deployed", async () => {
       const [toBuyer, toOwner] = await token.connect(addr1).calculateTokenBuyReturns(ONE_FINNEY)
-      expect(toBuyer.toString()).to.equal('666991013933023450444');
-      expect(toOwner.toString()).to.equal('74110112659224827827');
+      expect(toBuyer.toString()).to.equal('83883967787980700804');
+      expect(toOwner.toString()).to.equal('9320440865331188978');
+      const [toBuyer2, toOwner2] = await token.connect(addr1).calculateTokenBuyReturns(ethers.utils.parseUnits("2.0", "ether"))
+      expect(toBuyer2.toString()).to.equal('54023820594276909688566');
+      // expect(toOwner2.toString()).to.equal('74110112659224827827');
       await token.connect(addr1).buyNewTokens({ value: ONE_FINNEY });
-      expect(await token.connect(addr1).balanceOf(await addr1.getAddress())).to.equal(toBuyer)
+      expect(await token.connect(addr1).balanceOf(await addr1.getAddress())).to.equal(toBuyer);
     })
 
     it("Should let users see how many tokens will be deployed", async () => {
       await token.connect(addr1).buyNewTokens({ value: ethers.utils.parseUnits("1.0", "ether") });
       const tokens = await token.connect(addr1).calculateTokenBuyReturns(ONE_FINNEY)
-      expect(tokens[0].toString()).to.equal('1252215411703743791');
+      expect(tokens[0].toString()).to.equal('33294996610667861090');
     })
 
   })

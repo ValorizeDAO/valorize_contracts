@@ -1,4 +1,5 @@
-pragma solidity ^0.8.0;
+//SPDX-License-Identifier: Unlicense
+pragma solidity 0.8.6;
 
 
  /**
@@ -12,8 +13,6 @@ pragma solidity ^0.8.0;
  * and to You under the Apache License, Version 2.0. "
  */
 contract Power {
-    string public PowerVersion = "0.3";
-
     uint256 private constant ONE = 1;
     uint32 private constant MAX_WEIGHT = 1000000;
     uint8 private constant MIN_PRECISION = 32;

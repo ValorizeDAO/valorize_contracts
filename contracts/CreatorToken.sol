@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity 0.8.6;
 
 import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./@openzeppelin/contracts/access/Ownable.sol";
-import "./@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./curves/BondingCurve.sol";
+// import "hardhat/console.sol";
 
 /**
  * @title CreatorToken
@@ -14,11 +14,11 @@ import "./curves/BondingCurve.sol";
  *         some amount of ether that can be traded out at any point.
  */
 contract CreatorToken is BondingCurve, ERC20, Ownable {
-    using SafeMath for uint256;
     uint256 immutable initialSupply;
     uint256 public reserveBalance = (10**18);
     uint256 public reserveRatio;
-    uint256 public founderPercentage;
+    uint8 public founderPercentage;
+    bool private reEntranceGuard = false;
 
     constructor(
         uint256 _initialSupply,
@@ -64,6 +64,9 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
     function sellTokensForEth(uint256 _amount) external {
         require(_amount > 0, "Amount must be non-zero.");
         require(balanceOf(msg.sender) >= _amount, "not enough tokens to sell");
+        require(!reEntranceGuard);
+        reEntranceGuard = true;
+
         uint256 reimburseAmount = calculateTotalSaleReturn(_amount);
         if (payable(msg.sender).send(reimburseAmount)) {
             reserveBalance = reserveBalance - reimburseAmount;
@@ -72,6 +75,8 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         } else {
             revert("withdrawing failed");
         }
+
+        reEntranceGuard = false;
     }
 
 
@@ -105,13 +110,26 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         view
         returns (uint256 mintAmount)
     {
+
         return
             calculatePurchaseReturn(
                 totalSupply(),
-                address(this).balance,
+                checkAndReturnInitialContractBalance(_deposit, address(this).balance),
                 uint32(reserveRatio),
                 _deposit
             );
+    }
+
+    function checkAndReturnInitialContractBalance(uint256 _amountToDeposit, uint256 balanceToCheckAgainst) public view returns(uint256 _amountToUseAsTokenBalance){
+        _amountToUseAsTokenBalance = balanceToCheckAgainst;
+        if(_amountToUseAsTokenBalance == _amountToDeposit){
+            // square root of initial deposit amount, this is bitwise shifted by 32
+            // to define the price of the token when there is no reserve ratio to compare it to
+            uint8 temp;
+            uint256 tempAmount;
+            (tempAmount, temp)= power(_amountToDeposit, 1, 1, 2); 
+            _amountToUseAsTokenBalance = tempAmount >> 32 ;
+        }
     }
 
     function calculateTotalSaleReturn(uint256 _amount)
@@ -128,7 +146,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
             );
     }
 
-    function changeFounderPercentage(uint256 _newPercentage)
+    function changeFounderPercentage(uint8 _newPercentage)
         external
         onlyOwner
     {
@@ -148,16 +166,17 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         view
         returns (uint256, uint256)
     {
+        
         uint256 amountToMint = calculatePurchaseReturn(
             totalSupply(),
-            address(this).balance + _amount,
+            checkAndReturnInitialContractBalance(_amount, (address(this).balance + _amount)),
             uint32(reserveRatio),
             _amount
         );
         return splitAmountToFounderAndBuyer(amountToMint, founderPercentage);
     }
 
-    function splitAmountToFounderAndBuyer(uint256 amount, uint256 percentage)
+    function splitAmountToFounderAndBuyer(uint256 amount, uint8 percentage)
         internal
         pure
         returns (uint256 amountForSender, uint256 amountForOwner)

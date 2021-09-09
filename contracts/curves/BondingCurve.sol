@@ -1,13 +1,16 @@
-pragma solidity ^0.8.0;
+//SPDX-License-Identifier: Unlicense
+pragma solidity 0.8.6;
 import "./Power.sol";
+// import "hardhat/console.sol";
 
 /**
  * Bancor formula by Bancor
  * https://github.com/bancorprotocol/contracts
+ * https://www.blunderingcode.com/how-bancor-works/
+ * 
  * Modified by Javier Gonzalez
  */
 abstract contract BondingCurve is Power {
-    string public version = "0.3";
     uint32 private constant MAX_WEIGHT = 1000000;
 
     /**
@@ -34,7 +37,6 @@ abstract contract BondingCurve is Power {
             _connectorWeight > 0 &&
             _connectorWeight <= MAX_WEIGHT
         );
-
         // special case for 0 deposit amount
         if (_depositAmount == 0) return 0;
 
