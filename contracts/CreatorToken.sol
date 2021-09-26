@@ -62,8 +62,8 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
      *      to the contract which then burns them in exchange for eth.
      **/
     function sellTokensForEth(uint256 _amount) external {
-        require(_amount > 0, "Amount must be non-zero.");
-        require(balanceOf(msg.sender) >= _amount, "not enough tokens to sell");
+        require(_amount > 0, "amount required");
+        require(balanceOf(msg.sender) >= _amount, "not enough tokens");
         require(!reEntranceGuard);
         reEntranceGuard = true;
 
@@ -73,7 +73,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
             _burn(msg.sender, _amount);
             emit Burned(msg.sender, _amount, reimburseAmount);
         } else {
-            revert("withdrawing failed");
+            revert("withdraw failed");
         }
 
         reEntranceGuard = false;
@@ -133,9 +133,9 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
     }
 
     function calculateTotalSaleReturn(uint256 _amount)
-        internal
+        public
         view
-        returns (uint256 burnAmount)
+        returns (uint256)
     {
         return
             calculateSaleReturn(

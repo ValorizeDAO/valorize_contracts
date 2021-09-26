@@ -29,7 +29,7 @@ abstract contract BondingCurve is Power {
         uint256 _connectorBalance,
         uint32 _connectorWeight,
         uint256 _depositAmount
-    ) public view returns (uint256) {
+    ) internal view returns (uint256) {
         // validate input
         require(
             _supply > 0 &&
@@ -73,7 +73,7 @@ abstract contract BondingCurve is Power {
         uint256 _connectorBalance,
         uint32 _connectorWeight,
         uint256 _sellAmount
-    ) public view returns (uint256) {
+    ) internal view returns (uint256) {
         // validate input
         require(
             _supply > 0 &&
