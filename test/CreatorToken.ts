@@ -163,7 +163,7 @@ describe("CreatorToken", () => {
       
       await expect(
         token.connect(addr1).sellTokensForEth(userSupply.add(ethers.BigNumber.from("1")))
-      ).to.be.revertedWith("not enough tokens to sell");
+      ).to.be.revertedWith("not enough tokens");
     })
   })
   describe("View", () => {
@@ -175,7 +175,6 @@ describe("CreatorToken", () => {
       expect(toOwner.toString()).to.equal('9320440865331188978');
       const [toBuyer2, toOwner2] = await token.connect(addr1).calculateTokenBuyReturns(ethers.utils.parseUnits("2.0", "ether"))
       expect(toBuyer2.toString()).to.equal('54023820594276909688566');
-      // expect(toOwner2.toString()).to.equal('74110112659224827827');
       await token.connect(addr1).buyNewTokens({ value: ONE_FINNEY });
       expect(await token.connect(addr1).balanceOf(await addr1.getAddress())).to.equal(toBuyer);
     })
@@ -186,6 +185,22 @@ describe("CreatorToken", () => {
       expect(tokens[0].toString()).to.equal('33294996610667861090');
     })
 
+    it("Should let users see how much ETH will be returned from selling tokens", async () => {
+      await token.connect(owner).buyNewTokens({ value: ONE_ETH })
+      await token.connect(addr1).buyNewTokens({ value: ONE_ETH })
+
+      const initialUserEthBalance = await owner.getBalance() as BigNumber;
+      const userTokenBalance = await token.connect(owner).balanceOf(await owner.getAddress()) as BigNumber;
+      
+      const saleReturns = await token.connect(owner).calculateTotalSaleReturn(userTokenBalance)
+      const tx = await token.connect(owner).sellTokensForEth(userTokenBalance);      
+      const maxGasFee = tx.gasPrice.mul(tx.gasLimit);
+
+      const expectedBalance = initialUserEthBalance.add(saleReturns)
+      const finalUserEthBalance = await owner.getBalance() as BigNumber;
+      
+      expect(expectedBalance.sub(finalUserEthBalance).lt(maxGasFee)).to.equal(true);      
+    })
   })
 });
 
