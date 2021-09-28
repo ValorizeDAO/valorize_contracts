@@ -15,8 +15,8 @@ import "./curves/BondingCurve.sol";
  */
 contract CreatorToken is BondingCurve, ERC20, Ownable {
     uint256 immutable initialSupply;
-    uint256 public reserveBalance = (10**18);
-    uint256 public reserveRatio;
+    uint256 private reserveBalance = (10**18);
+    uint256 private reserveRatio;
     uint8 public founderPercentage;
     bool private reEntranceGuard = false;
 
@@ -52,7 +52,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
      *       founderPercentage.
      **/
     function buyNewTokens() external payable {
-        require(msg.value > 0, "Must send ETH to buy tokens");
+        require(msg.value > 0, "ETH required");
         uint256 amountToMint = calculateTotalMintAmount(msg.value);
         _mintAndDistribute(amountToMint, msg.value);
     }
@@ -120,7 +120,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
             );
     }
 
-    function checkAndReturnInitialContractBalance(uint256 _amountToDeposit, uint256 balanceToCheckAgainst) public view returns(uint256 _amountToUseAsTokenBalance){
+    function checkAndReturnInitialContractBalance(uint256 _amountToDeposit, uint256 balanceToCheckAgainst) internal view returns(uint256 _amountToUseAsTokenBalance){
         _amountToUseAsTokenBalance = balanceToCheckAgainst;
         if(_amountToUseAsTokenBalance == _amountToDeposit){
             // square root of initial deposit amount, this is bitwise shifted by 32
@@ -157,23 +157,12 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         founderPercentage = _newPercentage;
     }
 
-    function getEthBalance() public view returns (uint256) {
-        return address(this).balance;
-    }
-
     function calculateTokenBuyReturns(uint256 _amount)
         public
         view
         returns (uint256, uint256)
     {
-        
-        uint256 amountToMint = calculatePurchaseReturn(
-            totalSupply(),
-            checkAndReturnInitialContractBalance(_amount, (address(this).balance + _amount)),
-            uint32(reserveRatio),
-            _amount
-        );
-        return splitAmountToFounderAndBuyer(amountToMint, founderPercentage);
+        return splitAmountToFounderAndBuyer(calculateTotalMintAmount(_amount), founderPercentage);
     }
 
     function splitAmountToFounderAndBuyer(uint256 amount, uint8 percentage)

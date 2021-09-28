@@ -143,7 +143,7 @@ describe("CreatorToken", () => {
       await token.connect(owner).sellTokensForEth(ownerSupply);
       const finalOwnerBalance = parseFloat(ethers.utils.formatEther(await owner.getBalance()));
       expect(floatDifferenceIsWithinDelta(initialOwnerBalance, finalOwnerBalance)).to.equal(true);
-      expect(await token.getEthBalance()).to.equal(0);
+      expect(await ethers.getDefaultProvider().getBalance(token.address)).to.equal(0);
     })
 
     it("The ETH withdrawal should be proportionate to the balance in the contract", async () => {
