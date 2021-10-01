@@ -16,13 +16,12 @@ import "./curves/BondingCurve.sol";
 contract CreatorToken is BondingCurve, ERC20, Ownable {
     uint256 immutable initialSupply;
     uint256 private reserveBalance = (10**18);
-    uint256 private reserveRatio;
+    uint32 constant reserveRatio = 800000;
     uint8 public founderPercentage;
     bool private reEntranceGuard = false;
 
     constructor(
         uint256 _initialSupply,
-        uint256 _reserveRatio,
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
@@ -32,12 +31,11 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         }
         initialSupply = _initialSupply;
         founderPercentage = 10;
-        reserveRatio = _reserveRatio;
     }
 
     event Burned(address _To, uint256 _amountMinted, uint256 _amountDeposited);
 
-    event Minted(
+    event Distributed(
         address buyer,
         uint256 deposited,
         uint256 amountMinted,
@@ -52,7 +50,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
      *       founderPercentage.
      **/
     function buyNewTokens() external payable {
-        require(msg.value > 0, "ETH required");
+        require(msg.value > 0, "Must send ETH to buy tokens");
         uint256 amountToMint = calculateTotalMintAmount(msg.value);
         _mintAndDistribute(amountToMint, msg.value);
     }
@@ -96,7 +94,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
 
         uint256 minted = amountForSender + amountForOwner; // Because of rounding errors, this is preferable than using amountToMint
         reserveBalance = reserveBalance + _deposit;
-        emit Minted(
+        emit Distributed(
             msg.sender,
             _deposit,
             minted,
@@ -105,12 +103,8 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         );
     }
 
-    function calculateTotalMintAmount(uint256 _deposit)
-        internal
-        view
-        returns (uint256 mintAmount)
+    function calculateTotalMintAmount(uint256 _deposit) internal view returns (uint256)
     {
-
         return
             calculatePurchaseReturn(
                 totalSupply(),
@@ -140,7 +134,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         return
             calculateSaleReturn(
                 totalSupply(),
-                address(this).balance,
+                checkAndReturnInitialContractBalance(_amount, address(this).balance),
                 uint32(reserveRatio),
                 _amount
             );
@@ -162,7 +156,14 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         view
         returns (uint256, uint256)
     {
-        return splitAmountToFounderAndBuyer(calculateTotalMintAmount(_amount), founderPercentage);
+        uint256 _amountToMint =
+            calculatePurchaseReturn(
+                totalSupply(),
+                checkAndReturnInitialContractBalance(_amount, (address(this).balance + _amount)), //Need to add the amount to the balance in case this is the first deposit
+                uint32(reserveRatio),
+                _amount
+            );
+        return splitAmountToFounderAndBuyer(_amountToMint, founderPercentage);
     }
 
     function splitAmountToFounderAndBuyer(uint256 amount, uint8 percentage)

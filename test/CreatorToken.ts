@@ -14,7 +14,7 @@ describe("CreatorToken", () => {
   let CreatorToken: any, token: Contract, owner: Signer, addr1: Signer, addresses: Signer[]
   const setupCreatorToken = async () => {
     CreatorToken = await ethers.getContractFactory("CreatorToken");
-    token = await CreatorToken.deploy(INITIAL_SUPPLY_AMOUNT, 800000, "CreatorTest", "TST");
+    token = await CreatorToken.deploy(INITIAL_SUPPLY_AMOUNT, "CreatorTest", "TST");
     await token.deployed();
     [owner, addr1, ...addresses] = await ethers.getSigners();
   }
@@ -47,14 +47,14 @@ describe("CreatorToken", () => {
       expect(ownerBalanceDiff).to.equal(ethers.BigNumber.from("4529391681886898963152"));
     })
 
-    it("Should emit a creation event on minting", async () => {
+    it("Should emit a 'Distributed' event on minting", async () => {
       const msgMetadata = { value: ONE_FINNEY }
       const expectedTotal = ethers.BigNumber.from("93204408653311889782") as BigNumber;
       const expectedBuyer = ethers.BigNumber.from("83883967787980700804");
       const expectedOwner = expectedTotal.mul(10).div(100)
       await expect(
         token.connect(addr1).buyNewTokens(msgMetadata))
-        .to.emit(token, 'Minted')
+        .to.emit(token, 'Distributed')
         .withArgs(await addr1.getAddress(), ONE_FINNEY, expectedTotal, expectedBuyer, expectedOwner);
     })
 
