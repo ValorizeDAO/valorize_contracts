@@ -134,7 +134,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         return
             calculateSaleReturn(
                 totalSupply(),
-                checkAndReturnInitialContractBalance(_amount, address(this).balance),
+                address(this).balance,
                 uint32(reserveRatio),
                 _amount
             );
