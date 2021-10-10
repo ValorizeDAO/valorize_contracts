@@ -16,8 +16,8 @@ import "./curves/BondingCurve.sol";
 contract CreatorToken is BondingCurve, ERC20, Ownable {
     uint256 immutable initialSupply;
     uint256 private reserveBalance = (10**18);
-    uint32 constant reserveRatio = 800000;
-    uint8 public founderPercentage;
+    uint256 constant reserveRatio = 800000;
+    uint256 public founderPercentage;
     bool private reEntranceGuard = false;
 
     constructor(
@@ -71,7 +71,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
             _burn(msg.sender, _amount);
             emit Burned(msg.sender, _amount, reimburseAmount);
         } else {
-            revert("withdraw failed");
+            revert("failed");
         }
 
         reEntranceGuard = false;
@@ -140,13 +140,13 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
             );
     }
 
-    function changeFounderPercentage(uint8 _newPercentage)
+    function changeFounderPercentage(uint256 _newPercentage)
         external
         onlyOwner
     {
         require(
             _newPercentage <= 100,
-            "Founder percentage must be less than 100"
+            "percentage > 100"
         );
         founderPercentage = _newPercentage;
     }
@@ -166,7 +166,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         return splitAmountToFounderAndBuyer(_amountToMint, founderPercentage);
     }
 
-    function splitAmountToFounderAndBuyer(uint256 amount, uint8 percentage)
+    function splitAmountToFounderAndBuyer(uint256 amount, uint256 percentage)
         internal
         pure
         returns (uint256 amountForSender, uint256 amountForOwner)
