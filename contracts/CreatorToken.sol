@@ -23,7 +23,8 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
     constructor(
         uint256 _initialSupply,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address initialOwner
     ) ERC20(name, symbol) {
         if (_initialSupply > 0) {
             _mint(msg.sender, _initialSupply);
@@ -31,6 +32,9 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         }
         initialSupply = _initialSupply;
         founderPercentage = 10;
+        if (initialOwner != msg.sender) {
+            transferOwnership(initialOwner);
+        }
     }
 
     event Burned(address _To, uint256 _amountMinted, uint256 _amountDeposited);
@@ -131,6 +135,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         view
         returns (uint256)
     {
+        require(address(this).balance > 0, "buy tokens first");
         return
             calculateSaleReturn(
                 totalSupply(),
