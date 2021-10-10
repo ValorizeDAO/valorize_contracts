@@ -2,6 +2,7 @@ import { ethers } from "hardhat";
 import { BigNumber, Contract, Signer } from "ethers";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
+import { getAddress } from "@ethersproject/address";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -13,10 +14,10 @@ const ONE_ETH = ethers.utils.parseUnits("1.0", "ether") as BigNumber;
 describe("CreatorToken", () => {
   let CreatorToken: any, token: Contract, owner: Signer, addr1: Signer, addresses: Signer[]
   const setupCreatorToken = async () => {
-    CreatorToken = await ethers.getContractFactory("CreatorToken");
-    token = await CreatorToken.deploy(INITIAL_SUPPLY_AMOUNT, "CreatorTest", "TST");
-    await token.deployed();
     [owner, addr1, ...addresses] = await ethers.getSigners();
+    CreatorToken = await ethers.getContractFactory("CreatorToken");
+    token = await CreatorToken.deploy(INITIAL_SUPPLY_AMOUNT, "CreatorTest", "TST", await owner.getAddress());
+    await token.deployed();
   }
 
   describe("Deployment", () => {
@@ -81,7 +82,13 @@ describe("CreatorToken", () => {
       //More tokens should be minted on the first try
       expect(firstDiff.gt(secondDiff)).to.be.true;
       expect(secondDiff.gt(thirdDiff)).to.be.true;
-    })
+    }) 
+    
+    it("Should transfer the token ownership to an account decided on the constructor", async () => {
+      token = await CreatorToken.deploy(INITIAL_SUPPLY_AMOUNT, "CreatorTest", "TST", await addr1.getAddress());
+      await token.deployed()
+      expect(await token.owner()).to.equal(await addr1.getAddress());
+    });
   })
 
   describe("Founder Percentage", () => {
@@ -98,20 +105,19 @@ describe("CreatorToken", () => {
       expect(ownerBalanceDiff).to.equal(18640881730662433000);
     })
 
-    it("Should not allow for a non founder to change the founder percentage", async () => {
-      const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
+    it("Should not allow for a non owner to change the founder percentage", async () => {
       await expect(
         token.connect(addr1).changeFounderPercentage(20)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     })
 
-    it("Should not allow for founder to change to a percentage > 100", async () => {
+    it("Should not allow for owner to change to a percentage > 100", async () => {
       await expect(
         token.connect(owner).changeFounderPercentage(101)
       ).to.be.revertedWith('');
     })
 
-    it("Should not give all newly minted tokens to founder if percentage is 100", async () => {
+    it("Should not give all newly minted tokens to buyer if percentage is 100", async () => {
       const oneFinneyTxMetadata = { value: ethers.utils.parseUnits("1.0", "finney").toNumber() };
       await token.connect(owner).changeFounderPercentage(100)
       await token.connect(addr1).buyNewTokens(oneFinneyTxMetadata)
