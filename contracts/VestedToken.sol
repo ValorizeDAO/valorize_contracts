@@ -31,7 +31,7 @@ import "hardhat/console.sol";
  *              the rest of the 80% is vested for 4 years with a cliff of 1 year.
  */
 contract VestedToken is ERC20, AccessControl {
-    bytes32 public constant USER_ROLE = keccak256("VESTEE");
+    bytes32 public constant VESTEE_ROLE = keccak256("VESTEE");
 
     constructor(
         string memory name,
@@ -51,6 +51,10 @@ contract VestedToken is ERC20, AccessControl {
 
     function mint(address _to, uint256 _amount) onlyAdmin public {
         _mint(_to, _amount);
+    }
+    
+    function addVestee(address _vestee) onlyAdmin public {
+        _setupRole(VESTEE_ROLE, _vestee);
     }
 }
 
