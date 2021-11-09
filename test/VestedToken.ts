@@ -45,4 +45,17 @@ describe("VestedToken", () => {
       ).to.be.revertedWith("Admin Role required to call");
     });
   })
+  describe("Grant Vesting", () => {
+    beforeEach(setupVestedToken)
+
+    it("Should allow admin to grant VESTEE role to any address", async () => {
+      const { keccak256, formatBytes32String } = ethers.utils;
+      const vestee = formatBytes32String('VESTEE')
+      expect(
+        await token.hasRole(vestee, await deployer.getAddress())
+        ).to.equal(false);
+      await token.connect(admin).addVestee(await deployer.getAddress())
+      expect(await token.hasRole(vestee, await deployer.getAddress())).to.equal(true);
+    });
+  })
 });
