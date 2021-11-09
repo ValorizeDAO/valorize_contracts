@@ -37,6 +37,7 @@ describe("VestedToken", () => {
       await token.connect(admin).mint(await deployer.getAddress(), TEN_MILLION_IN_WEI),
       expect(await token.totalSupply()).to.equal(TEN_MILLION_IN_WEI.mul(ethers.BigNumber.from(2)));
     });
+
     it("Should only let admin mint new tokens", async () => {
       await expect(
         token.connect(deployer)
