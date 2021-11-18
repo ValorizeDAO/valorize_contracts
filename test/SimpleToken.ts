@@ -11,17 +11,17 @@ const ONE_FINNEY = ethers.utils.parseUnits("1.0", "finney") as BigNumber;
 const ONE_ETH = ethers.utils.parseUnits("1.0", "ether") as BigNumber;
 
 
-describe("VestedToken", () => {
-  let VestedToken: any, token: Contract, deployer: Signer, admin: Signer, safe: Signer, addresses: Signer[]
-  const setupVestedToken = async () => {
+describe("SimpleToken", () => {
+  let SimpleToken: any, token: Contract, deployer: Signer, admin: Signer, safe: Signer, addresses: Signer[]
+  const setupSimpleToken = async () => {
     [deployer, admin, safe, ...addresses] = await ethers.getSigners();
-    VestedToken = await ethers.getContractFactory("VestedToken");
-    token = await VestedToken.deploy("OrgToken", "TST", TEN_MILLION_IN_WEI, await safe.getAddress(), await admin.getAddress());
+    SimpleToken = await ethers.getContractFactory("SimpleToken");
+    token = await SimpleToken.deploy("OrgToken", "TST", TEN_MILLION_IN_WEI, await safe.getAddress(), await admin.getAddress());
     await token.deployed();
   }
 
   describe("Deployment", () => {
-    beforeEach(setupVestedToken)
+    beforeEach(setupSimpleToken)
 
     it("Should create a token on deploying a contract", async () => {
       expect(await token.name()).to.equal("OrgToken");
@@ -38,27 +38,12 @@ describe("VestedToken", () => {
       expect(await token.totalSupply()).to.equal(TEN_MILLION_IN_WEI.mul(ethers.BigNumber.from(2)));
     });
 
-    it("Should only let admin mint new tokens", async () => {
+    it("Should reject non admin to mint new tokens", async () => {
       await expect(
         token.connect(deployer)
         .mint(await deployer.getAddress(), TEN_MILLION_IN_WEI)
       ).to.be.revertedWith("Admin Role required to call");
     });
   })
-  
-  describe("Grant Vesting", () => {
-    beforeEach(setupVestedToken)
 
-    it("Should allow admin to grant VESTEE role to any address", async () => {
-      const vestee = await token.VESTEE_ROLE()
-
-      expect(
-        await token.hasRole(vestee, await deployer.getAddress())
-        ).to.equal(false);
-      await token.connect(admin).addVestee(await deployer.getAddress())
-      expect(
-        await token.hasRole(vestee, await deployer.getAddress())
-        ).to.equal(true);
-    });
-  })
 });

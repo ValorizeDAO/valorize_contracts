@@ -1,9 +1,11 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.6;
 
-import "./@openzeppelin/contracts/access/AccessControl.sol";
-import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "hardhat/console.sol";
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // import {
 //     ISuperfluid,
@@ -15,46 +17,38 @@ import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
 //     IConstantFlowAgreementV1
 // } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 
-import "hardhat/console.sol";
-
 /**
- * @title Vested Token
+ * @title Vesting Schedule
  * @author Javier Gonzalez
- * @dev Implementation of a Vested Token.
- * @notice Vested Token is a token that can be minted and vested.
- *         Has a percentage immediately available to the owner, 
- *         the mint function is only callable by a multisig and mints tokens
- *         that are vested for a timelocked period with a cliff.
- *         i.e. TotalSupply is 100,000,000,000 tokens,
- *              owner recieves 20% immediately,
- *              owner can mint 20,000,000 tokens for a timelocked period of 1 year,
- *              the rest of the 80% is vested for 4 years with a cliff of 1 year.
+ * @dev Implementation of a Vesting Schedule for an ERC20 Token.
  */
-contract VestedToken is ERC20, AccessControl {
+contract VestingSchedule is AccessControl {
     bytes32 public constant VESTEE_ROLE = keccak256("VESTEE");
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 initialSupply,
-        address safe,
-        address admin
-    ) ERC20(name, symbol) {
-        _mint(safe, initialSupply);
+    constructor(address admin) { 
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
-    }   
-
-    modifier onlyAdmin {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin Role required to call");
-        _;
     }
 
-    function mint(address _to, uint256 _amount) onlyAdmin public {
-        _mint(_to, _amount);
+    function distributeTokens(
+        IERC20 _token,
+        address _vestee,
+        uint256 _amount,
+        uint256 schedule,
+        uint256 cliff
+    ) public onlyAdmin returns (bool) {
+        _token.transfer(_vestee, _amount);
     }
-    
-    function addVestee(address _vestee) onlyAdmin public {
+
+    function addVestee(address _vestee) public onlyAdmin {
         _setupRole(VESTEE_ROLE, _vestee);
+    }
+
+    modifier onlyAdmin() {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "Admin Role required to call"
+        );
+        _;
     }
 }
 
@@ -69,37 +63,38 @@ contract VestedToken is ERC20, AccessControl {
 //     {
 //         return _callAgreement(msg.sender, agreementClass, callData, userData);
 //     }
+// }
 
-    // enum RecipientState { Registered, Flowing, Stopped }
-    
-    // struct FlowRecipient {
-    //     address recipient;
-    //     uint256 flowRate;
-    //     bool permanent;
-    //     RecipientState state;
-    // }
+// enum RecipientState { Registered, Flowing, Stopped }
 
-    // event FlowStopped(
-    //     address recipient,
-    //     uint256 flowRate,
-    //     bool wasPermanent
-    // );
+// struct FlowRecipient {
+//     address recipient;
+//     uint256 flowRate;
+//     bool permanent;
+//     RecipientState state;
+// }
 
-    // ISuperfluid _host;
-    // IConstantFlowAgreementV1 _cfa;
-    // ISuperToken public acceptedToken;
-   
-    // mapping(address => FlowRecipient) _recipients;
-    // mapping(address => bool) _permanentRecipients;
-    // mapping(address => bool) _impermanentRecipients;
-    // mapping(address => uint256) _recipientLastStopped;
-    // mapping(address => uint256) _recipientToPauseDuration;
-   
-    // address admin;
-    // uint256 public cliffEnd;
-    // uint256 public starttime;
-    // uint256 public vestingDuration;
-    // bool public vestingActive;
+// event FlowStopped(
+//     address recipient,
+//     uint256 flowRate,
+//     bool wasPermanent
+// );
+
+// ISuperfluid _host;
+// IConstantFlowAgreementV1 _cfa;
+// ISuperToken public acceptedToken;
+
+// mapping(address => FlowRecipient) _recipients;
+// mapping(address => bool) _permanentRecipients;
+// mapping(address => bool) _impermanentRecipients;
+// mapping(address => uint256) _recipientLastStopped;
+// mapping(address => uint256) _recipientToPauseDuration;
+
+// address admin;
+// uint256 public cliffEnd;
+// uint256 public starttime;
+// uint256 public vestingDuration;
+// bool public vestingActive;
 
 //     constructor(ISuperfluid host, IConstantFlowAgreementV1 cfa, ISuperToken _acceptedToken, uint256 _cliffEnd, uint256 _vestingDuration) {
 //         require(address(host) != address(0), "host is zero address");
@@ -133,11 +128,7 @@ contract VestedToken is ERC20, AccessControl {
 //         _;
 //     }
 
-    
-
 //     function initializeRecipients() virtual internal;
-
-    
 
 //     function launchVesting(address[] calldata recipientAddresses) public onlyOwner {
 //         require(block.timestamp > cliffEnd, "Cliff period not ended.");
@@ -145,8 +136,6 @@ contract VestedToken is ERC20, AccessControl {
 //         for(uint i = 0; i < recipientAddresses.length; i++) {
 //             openStream(recipientAddresses[i]);
 //         }
-
-        
 
 //         if(!vestingActive) {
 //             starttime = block.timestamp;
@@ -212,19 +201,13 @@ contract VestedToken is ERC20, AccessControl {
 //         return newRecipient;
 //     }
 
-    
-
 //     function isPermanentRecipient(address adr) internal registeredRecipient(adr) view returns (bool) {
 //         return _recipients[adr].permanent;
 //     }
 
-    
-
 //     function flowTokenBalance() public view returns (uint256) {
 //         return acceptedToken.balanceOf(address(this));
 //     }
-
-
 
 //     function withdraw(IERC20 token, uint256 amount) public onlyOwner {
 //         require(amount <= token.balanceOf(address(this)), "Withdrawal amount exceeds balance");
@@ -233,8 +216,6 @@ contract VestedToken is ERC20, AccessControl {
 //     }
 
 // }
-
-
 
 // contract InvestorsVesting is FluidVesting {
 //     constructor(ISuperfluid host, IConstantFlowAgreementV1 cfa, ISuperToken _acceptedToken, uint256 _cliffEnd, uint256 _vestingDuration) FluidVesting(host, cfa, _acceptedToken, _cliffEnd, _vestingDuration) {}
@@ -274,7 +255,7 @@ contract VestedToken is ERC20, AccessControl {
 
 //     function closeStream(address recipient) public onlyOwner {
 //         require(_recipients[recipient].state == RecipientState.Flowing, "Stream inactive");
-        
+
 //         if(elapsedTime() < vestingDuration) {
 //             require(!isPermanentRecipient(recipient), "Stream for this receiver is permanent and cannot be closed.");
 //         }
@@ -293,7 +274,7 @@ contract VestedToken is ERC20, AccessControl {
 
 //         _recipients[recipient].state = RecipientState.Stopped;
 //         _recipientLastStopped[recipient] = block.timestamp;
-        
+
 //         emit FlowStopped(recipient,  _recipients[recipient].flowRate, isPermanentRecipient(recipient));
 //     }
 // }
