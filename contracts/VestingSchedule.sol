@@ -7,15 +7,15 @@ import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// import {
-//     ISuperfluid,
-//     ISuperToken,
-//     ISuperAgreement
-// } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
+import {
+    IConstantFlowAgreementV1
+} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
+import {
+    ISuperfluid,
+    ISuperToken,
+    ISuperAgreement
+} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 
-// import {
-//     IConstantFlowAgreementV1
-// } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 
 /**
  * @title Vesting Schedule
@@ -24,9 +24,36 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 contract VestingSchedule is AccessControl {
     bytes32 public constant VESTEE_ROLE = keccak256("VESTEE");
+   
+    ISuperfluid _host;
+    IConstantFlowAgreementV1 _cfa;
+    ISuperToken public _acceptedToken; 
 
-    constructor(address admin) { 
+    /**
+     * @param admin the contract's administrator
+     * @param host the superfluid contract
+     * @param cfa the constant flow agreement
+     * @param acceptedToken the token to be vested (needs to be a supertoken)
+     **/
+    constructor(address admin, ISuperfluid host, IConstantFlowAgreementV1 cfa, ISuperToken acceptedToken) { 
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _host = host;
+        _cfa = cfa;
+        _acceptedToken = acceptedToken;
+    }
+
+    function openStream(address recipient, uint256 _flowRate) public onlyAdmin {
+        _host.callAgreement(
+            _cfa,
+            abi.encodeWithSelector(
+                _cfa.createFlow.selector,
+                _acceptedToken,
+                recipient,
+                _flowRate,
+                new bytes(0)
+            ),
+            new bytes(0)
+        );
     }
 
     function distributeTokens(
