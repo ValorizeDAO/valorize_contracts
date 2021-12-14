@@ -8,3 +8,4 @@ artifacts
 typechain
 build
 contracts/@*
+.env
