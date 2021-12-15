@@ -37,5 +37,9 @@ describe("SimpleToken", () => {
     it("should deploy", async () => {
       expect(simpleToken).to.be.ok;
     })
+
+    it("should mint initial supply on creation", async () => {
+      expect(await simpleToken.totalSupply()).to.equal(TEN_MILLION_IN_WEI);
+    })
   })
 })
