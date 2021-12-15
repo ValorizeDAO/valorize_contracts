@@ -41,5 +41,18 @@ describe("SimpleToken", () => {
     it("should mint initial supply on creation", async () => {
       expect(await simpleToken.totalSupply()).to.equal(TEN_MILLION_IN_WEI);
     })
+
+    it("should grant admin role to list of addresses sent on constructor", async () => {
+      const adminRole = await simpleToken.DEFAULT_ADMIN_ROLE()
+      expect(
+             await simpleToken.hasRole(adminRole, await deployer.getAddress())
+            ).to.equal(false);
+      expect(
+             await simpleToken.hasRole(adminRole, await admin2.getAddress())
+            ).to.equal(true);
+      expect(
+             await simpleToken.hasRole(adminRole, await admin1.getAddress())
+            ).to.equal(true);
+    })
   })
 })
