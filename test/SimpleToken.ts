@@ -8,9 +8,12 @@ import { SimpleTokenFactory } from './../typechain/SimpleTokenFactory';
 
 chai.use(solidity);
 const { expect } = chai;
+const TEN_MILLION_IN_WEI = ethers.BigNumber.from("100000000000000000000000000") as BigNumber;
+const ONE_FINNEY = ethers.utils.parseUnits("1.0", "finney") as BigNumber;
+const ONE_ETH = ethers.utils.parseUnits("1.0", "ether") as BigNumber;
 
 describe("SimpleToken", () => {
-  let SimpleToken: SimpleToken, 
+  let simpleToken: SimpleToken, 
       deployer: Signer,
       admin1: Signer,
       admin2: Signer,
@@ -18,10 +21,21 @@ describe("SimpleToken", () => {
       addresses: Signer[]
 
   const setupSimpleToken = async () => {
-    [deployer, admin1, admin2, vault, ...addresses] = await ethers.getsigners();
-    token = await new SimpleTokenFactory(deployer).deploy("orgtoken", "tst", ten_million_in_wei, await safe.getaddress(), await admin.getaddress());
-    vestedtoken = await new vestingschedulefactory(admin).deploy(
-    token = await SimpleToken.deploy(INITIAL_SUPPLY_AMOUNT, "CreatorTest", "TST", await owner.getAddress());
-    await token.deployed();
+    [deployer, admin1, admin2, vault, ...addresses] = await ethers.getSigners();
+    simpleToken = await new SimpleTokenFactory(deployer).deploy(
+      TEN_MILLION_IN_WEI,
+      "Simple Token",
+      "SIMPL",
+      await vault.getAddress(),
+      [await admin1.getAddress(), await admin2.getAddress()]
+    );
+    await simpleToken.deployed();
   }
+  describe("Deployment", () => {
+    beforeEach(setupSimpleToken)
+
+    it("should deploy", async () => {
+      expect(simpleToken).to.be.ok;
+    })
+  })
 })
