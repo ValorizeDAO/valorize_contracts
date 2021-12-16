@@ -11,13 +11,13 @@ import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
  *         minting within a timeframe.
  */
 contract ERC20TimedMint is ERC20 {
-    uint256 timeUntilNexMint
+    uint256 timeUntilNexMint;
 
-    constructor(
+    constructor (
         string memory name,
         string memory symbol,
         uint256 _timeDelay
     ) ERC20(name, symbol) {
-        timeUntilNexMint = block.timeStamp + _timeDelay
+        timeUntilNexMint = block.timeStamp + _timeDelay;
     }
 }
