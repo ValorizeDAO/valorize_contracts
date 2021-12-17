@@ -8,9 +8,12 @@ import { SimpleTokenFactory } from './../typechain/SimpleTokenFactory';
 
 chai.use(solidity);
 const { expect } = chai;
-const TEN_MILLION_IN_WEI = ethers.BigNumber.from("100000000000000000000000000") as BigNumber;
+const ONE_TOKEN = ethers.BigNumber.from("1000000000000000000") as BigNumber;
+const TEN_MILLION_TOKENS = ethers.BigNumber.from("100000000000000000000000000") as BigNumber;
 const ONE_FINNEY = ethers.utils.parseUnits("1.0", "finney") as BigNumber;
 const ONE_ETH = ethers.utils.parseUnits("1.0", "ether") as BigNumber;
+const FREE_SUPPLY = TEN_MILLION_TOKENS
+const AIRDROP_SUPPLY = ONE_TOKEN.mul(BigNumber.from("1000000"))
 
 describe("SimpleToken", () => {
   let simpleToken: SimpleToken, 
@@ -23,10 +26,11 @@ describe("SimpleToken", () => {
   const setupSimpleToken = async () => {
     [deployer, admin1, admin2, vault, ...addresses] = await ethers.getSigners();
     simpleToken = await new SimpleTokenFactory(deployer).deploy(
-      TEN_MILLION_IN_WEI,
+      FREE_SUPPLY,
+      AIRDROP_SUPPLY,
+      await vault.getAddress(),
       "Simple Token",
       "SIMPL",
-      await vault.getAddress(),
       [await admin1.getAddress(), await admin2.getAddress()]
     );
     await simpleToken.deployed();
@@ -36,10 +40,6 @@ describe("SimpleToken", () => {
 
     it("should deploy", async () => {
       expect(simpleToken).to.be.ok;
-    })
-
-    it("should mint initial supply on creation", async () => {
-      expect(await simpleToken.totalSupply()).to.equal(TEN_MILLION_IN_WEI);
     })
 
     it("should grant admin role to list of addresses sent on constructor", async () => {
@@ -53,6 +53,14 @@ describe("SimpleToken", () => {
       expect(
              await simpleToken.hasRole(adminRole, await admin1.getAddress())
             ).to.equal(true);
+    })
+
+    it("should supply the vault the initial free supply amount", async () => {
+      expect(await simpleToken.balanceOf(await vault.getAddress())).to.equal(FREE_SUPPLY);
+    })
+
+    it("should hold the airdropped tokens within the contract", async () => {
+      expect(await simpleToken.balanceOf(await simpleToken.resolvedAddress)).to.equal(AIRDROP_SUPPLY);
     })
   })
 })
