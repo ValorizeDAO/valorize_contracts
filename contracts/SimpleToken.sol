@@ -37,4 +37,8 @@ contract SimpleToken is ERC20, AccessControl {
             _setupRole(DEFAULT_ADMIN_ROLE, admins[i]);
         }
     }
+
+		function getInitialSupply() public view returns (uint256) {
+			return initialSupply;
+		}
 }

@@ -62,5 +62,9 @@ describe("SimpleToken", () => {
     it("should hold the airdropped tokens within the contract", async () => {
       expect(await simpleToken.balanceOf(await simpleToken.resolvedAddress)).to.equal(AIRDROP_SUPPLY);
     })
+
+    it("should record what was the initial supply", async () => {
+      expect(await simpleToken.getInitialSupply()).to.equal(FREE_SUPPLY.add(AIRDROP_SUPPLY));
+    })
   })
 })
