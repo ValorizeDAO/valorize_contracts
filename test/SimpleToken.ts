@@ -5,8 +5,11 @@ import { solidity } from "ethereum-waffle";
 import { getAddress } from "@ethersproject/address";
 import { SimpleToken } from './../typechain/SimpleToken.d';
 import { SimpleTokenFactory } from './../typechain/SimpleTokenFactory';
+import { MerkleTree } from "merkletreejs";
+import { keccak_256 } from "js-sha3";
 
 chai.use(solidity);
+
 const { expect } = chai;
 const ONE_TOKEN = ethers.BigNumber.from("1000000000000000000") as BigNumber;
 const TEN_MILLION_TOKENS = ethers.BigNumber.from("100000000000000000000000000") as BigNumber;
@@ -65,6 +68,35 @@ describe("SimpleToken", () => {
 
     it("should record what was the initial supply", async () => {
       expect(await simpleToken.getInitialSupply()).to.equal(FREE_SUPPLY.add(AIRDROP_SUPPLY));
+    })
+  })
+
+  describe("Airdrop", async () => {
+    let merkleTree: MerkleTree
+    beforeEach(async () => {
+      await setupSimpleToken()
+      const leaves = [
+        [await addresses[0].getAddress(), BigNumber.from("1000000000000000000000")],
+        [await addresses[1].getAddress(), BigNumber.from("2000000000000000000000")],
+        [await addresses[2].getAddress(), BigNumber.from("2000000000000000000000")],
+      ].map(v => ethers.utils.solidityKeccak256(['address', 'uint256'], [v[0], v[1]]))
+      merkleTree = new MerkleTree(leaves, keccak_256)
+    })
+
+    it("should allow admin to set merkle Tree Root for airdrops", async () => {
+      const root = merkleTree.getHexRoot()
+      await expect(
+        simpleToken.connect(addresses[8]).setMerkleRoot(root)
+      ).to.be.revertedWith(
+        "AccessControl: account 0xfabb0ac9d68b0b445fb7357272ff202c5651694a is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      await expect(await simpleToken.connect(admin1).setMerkleRoot(root)).to.be.ok;
+    })
+
+    it("should not allow setting multiple merkleRoots", async () => {
+      const root = merkleTree.getHexRoot()
+      await expect(await simpleToken.connect(admin1).setMerkleRoot(root)).to.be.ok;
+      await expect(simpleToken.connect(admin2).setMerkleRoot(root)).to.be.revertedWith("Merkle root already set");
     })
   })
 })
