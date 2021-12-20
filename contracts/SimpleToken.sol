@@ -3,6 +3,7 @@ pragma solidity 0.8.6;
 
 import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./@openzeppelin/contracts/access/AccessControl.sol";
+import "./@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 //import "hardhat/console.sol";
 
 /**
@@ -12,6 +13,9 @@ import "./@openzeppelin/contracts/access/AccessControl.sol";
  */
 contract SimpleToken is ERC20, AccessControl {
     uint256 immutable initialSupply;
+    bytes32 public merkleRoot;
+
+    event MerkleRootChanged(bytes32 merkleRoot);
 
 		/**
      * @dev Constructor.
@@ -41,4 +45,10 @@ contract SimpleToken is ERC20, AccessControl {
 		function getInitialSupply() public view returns (uint256) {
 			return initialSupply;
 		}
+		
+		function setMerkleRoot(bytes32 _merkleRoot) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(merkleRoot == bytes32(0), "Merkle root already set");
+        merkleRoot = _merkleRoot;
+        emit MerkleRootChanged(_merkleRoot);
+    }
 }
