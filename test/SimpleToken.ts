@@ -71,7 +71,7 @@ describe("SimpleToken", () => {
     })
   })
 
-  describe("Airdrop", async () => {
+  describe.only("Airdrop", async () => {
     let merkleTree: MerkleTree
     beforeEach(async () => {
       await setupSimpleToken()
@@ -97,6 +97,25 @@ describe("SimpleToken", () => {
       const root = merkleTree.getHexRoot()
       await expect(await simpleToken.connect(admin1).setMerkleRoot(root)).to.be.ok;
       await expect(simpleToken.connect(admin2).setMerkleRoot(root)).to.be.revertedWith("Merkle root already set");
+    })
+
+    it("should emit a MerkleRootChanged Event on setting", async () => {
+      const root = merkleTree.getHexRoot()
+      await expect(
+        simpleToken.connect(admin1).setMerkleRoot(root))
+        .to.emit(simpleToken, 'MerkleRootChanged')
+        .withArgs(root);
+    })
+
+    it("should allow people to claim their alloted tokens", async () => {
+      const root = merkleTree.getHexRoot()
+      await simpleToken.connect(admin1).setMerkleRoot(root)
+
+      const expectedBalance = BigNumber.from("1000000000000000000000")
+      const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
+      const proof = merkleTree.getHexProof(leaf)
+      await simpleToken.connect(addresses[0]).claimTokens(expectedBalance, proof);
+      await expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
     })
   })
 })
