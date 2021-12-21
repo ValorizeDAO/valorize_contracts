@@ -16,6 +16,7 @@ contract SimpleToken is ERC20, AccessControl {
     bytes32 public merkleRoot;
 
     event MerkleRootChanged(bytes32 merkleRoot);
+    event Claimed(address claimant, uint256 amount);
 
 		/**
      * @dev Constructor.
@@ -55,11 +56,10 @@ contract SimpleToken is ERC20, AccessControl {
 		function claimTokens(uint256 amount, bytes32[] calldata merkleProof) external {
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, amount));
         (bool valid, uint256 index) = MerkleProof.verify(merkleProof, merkleRoot, leaf);
-				//require(valid, "Failed to verify proof");
-				//require(!isClaimed(index), "Tokens already claimed");
+				require(valid, "Failed to verify proof");
         
-        //emit Claim(msg.sender, amount);
+        emit Claimed(msg.sender, amount);
 
-        //_transfer(address(this), msg.sender, amount));
+        _transfer(address(this), msg.sender, amount);
     }
 }

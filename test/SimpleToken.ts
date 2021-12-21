@@ -5,8 +5,10 @@ import { solidity } from "ethereum-waffle";
 import { getAddress } from "@ethersproject/address";
 import { SimpleToken } from './../typechain/SimpleToken.d';
 import { SimpleTokenFactory } from './../typechain/SimpleTokenFactory';
-import { MerkleTree } from "merkletreejs";
+import { MerkleTree } from 'merkletreejs';
 import { keccak_256 } from "js-sha3";
+
+
 
 chai.use(solidity);
 
@@ -75,12 +77,17 @@ describe("SimpleToken", () => {
     let merkleTree: MerkleTree
     beforeEach(async () => {
       await setupSimpleToken()
+      const nodeToHash = (baseNode: (String | BigNumber)[]) => ethers.utils.solidityKeccak256(['address', 'uint256'], [baseNode[0], baseNode[1]])
+      const hashingFunction = (hash: any) => { console.log({ hash }); ethers.utils.solidityKeccak256(['bytes32'], [hash]) }
       const leaves = [
         [await addresses[0].getAddress(), BigNumber.from("1000000000000000000000")],
         [await addresses[1].getAddress(), BigNumber.from("2000000000000000000000")],
         [await addresses[2].getAddress(), BigNumber.from("2000000000000000000000")],
-      ].map(v => ethers.utils.solidityKeccak256(['address', 'uint256'], [v[0], v[1]]))
-      merkleTree = new MerkleTree(leaves, keccak_256)
+      ].map(nodeToHash)
+      merkleTree = new MerkleTree(leaves, keccak_256, { sort: true })
+      const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), BigNumber.from("1000000000000000000000")])
+      const proof = merkleTree.getHexProof(leaf)
+      const root = merkleTree.getHexRoot()
     })
 
     it("should allow admin to set merkle Tree Root for airdrops", async () => {
@@ -114,7 +121,7 @@ describe("SimpleToken", () => {
       const expectedBalance = BigNumber.from("1000000000000000000000")
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
       const proof = merkleTree.getHexProof(leaf)
-      await simpleToken.connect(addresses[0]).claimTokens(expectedBalance, proof);
+      const tx = await simpleToken.connect(addresses[0]).claimTokens(expectedBalance, proof);
       await expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
     })
   })
