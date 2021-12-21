@@ -13,7 +13,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract ERC20TimedMint is ERC20 {
 
     uint256 public timeUntilNextMint;
-    uint256 public claimPeriod;
     uint256 private mintCap;
 
     event Claim(address claimant, uint256 amount);
