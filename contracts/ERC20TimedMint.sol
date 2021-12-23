@@ -13,20 +13,18 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract ERC20TimedMint is ERC20 {
 
     uint256 public timeUntilNextMint;
-    uint256 private mintCap;
+    uint256 internal mintCap;
+    uint256 internal timeDelay; 
 
     event Claim(address claimant, uint256 amount);
     
     constructor (
         string memory name,
-        string memory symbol,
-        uint256 _mintCap,
-        uint256 _timeDelay
+        string memory symbol
     )   
         ERC20(name, symbol) 
     {
-        timeUntilNextMint = block.timestamp + _timeDelay;
-        mintCap = _mintCap;
+        timeUntilNextMint = block.timestamp + timeDelay;
     }
 
     function claimTokens (
@@ -47,6 +45,14 @@ contract ERC20TimedMint is ERC20 {
         require(block.timestamp >= timeUntilNextMint, "ERC20: Cannot mint yet");
         require(amount <= mintCap, "ERC20: Mint exceeds maximum amount");
         super._mint(to, amount);
+    }
+
+    function _setTimeUntilNextMint(uint256 _timeDelay) external {
+        timeDelay = _timeDelay;
+    }
+
+    function _setMintCap (uint256 _mintCap) external {
+        mintCap = _mintCap;
     }
 }
 
