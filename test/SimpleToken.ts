@@ -84,6 +84,10 @@ describe("SimpleToken", () => {
       ].map((baseNode: (String | BigNumber)[]) => ethers.utils.solidityKeccak256(['address', 'uint256'], [baseNode[0], baseNode[1]]))
       merkleTree = new MerkleTree(leaves, keccak_256, { sort: true })
     })
+    const setMerkleRoot = async () => {
+      const root = merkleTree.getHexRoot()
+      await simpleToken.connect(admin1).newAirdrop(root)
+    }
 
     it("should allow admin to set merkle Tree Root for airdrops", async () => {
       const root = merkleTree.getHexRoot()
@@ -113,8 +117,7 @@ describe("SimpleToken", () => {
     })
 
     it("should allow people to claim their alloted tokens", async () => {
-      const root = merkleTree.getHexRoot()
-      await simpleToken.connect(admin1).newAirdrop(root)
+      await setMerkleRoot();
 
       const expectedBalance = BigNumber.from("1000000000000000000000")
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
@@ -124,8 +127,7 @@ describe("SimpleToken", () => {
     })
 
     it("should emit a Claimed event when claiming airdropped tokens", async () => {
-      const root = merkleTree.getHexRoot()
-      await simpleToken.connect(admin1).newAirdrop(root)
+      await setMerkleRoot();
 
       const expectedBalance = BigNumber.from("1000000000000000000000")
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
@@ -136,8 +138,7 @@ describe("SimpleToken", () => {
     })
 
     it("should only allow an address to claim their alloted tokens once", async () => {
-      const root = merkleTree.getHexRoot()
-      await simpleToken.connect(admin1).newAirdrop(root)
+      await setMerkleRoot();
 
       const expectedBalance = BigNumber.from("1000000000000000000000")
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
@@ -150,11 +151,28 @@ describe("SimpleToken", () => {
     })
 
     it("should allow you to get the airdrop information", async () => {
+      await setMerkleRoot()
+
+      const { root } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
+      await expect(root).to.equal(merkleTree.getHexRoot());
+    })
+  })
+  describe.only("Sweep", async () => {
+    let merkleTree: MerkleTree
+    beforeEach(async () => {
+      await setupSimpleToken()
+      const leaves = [
+        [await addresses[0].getAddress(), BigNumber.from("1000000000000000000000")],
+        [await addresses[1].getAddress(), BigNumber.from("2000000000000000000000")],
+        [await addresses[2].getAddress(), BigNumber.from("2000000000000000000000")],
+      ].map((baseNode: (String | BigNumber)[]) => ethers.utils.solidityKeccak256(['address', 'uint256'], [baseNode[0], baseNode[1]]))
+      merkleTree = new MerkleTree(leaves, keccak_256, { sort: true })
       const root = merkleTree.getHexRoot()
       await simpleToken.connect(admin1).newAirdrop(root)
-
-      const airdropInfo = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
-      await expect(airdropInfo).to.equal(root);
+    })
+    it("should allow you to get the airdrop information", async () => {
+      const { isFinished } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
+      await expect(isFinished).to.equal(false);
     })
   })
 })

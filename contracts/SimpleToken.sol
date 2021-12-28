@@ -20,6 +20,7 @@ contract SimpleToken is ERC20, AccessControl {
 
     struct Airdrop {
 			bytes32 merkleRoot;
+			bool isFinished;
 			BitMaps.BitMap claimed;
     }
     event MerkleRootChanged(bytes32 merkleRoot);
@@ -81,7 +82,8 @@ contract SimpleToken is ERC20, AccessControl {
         _transfer(address(this), msg.sender, claimAmount);
     }
 
-		function getAirdropInfo(uint256 _index) public view returns (bytes32) {
-			return airdrops[_index].merkleRoot;
+		function getAirdropInfo(uint256 _index) public view returns (bytes32 root, bool isFinished) {
+			root = airdrops[_index].merkleRoot;
+			isFinished = airdrops[_index].isFinished;
 		}
 }
