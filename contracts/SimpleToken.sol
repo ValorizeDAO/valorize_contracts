@@ -3,6 +3,9 @@ pragma solidity 0.8.6;
 
 import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./@openzeppelin/contracts/access/AccessControl.sol";
+import "./@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "./@openzeppelin/contracts/utils/structs/BitMaps.sol";
+
 //import "hardhat/console.sol";
 
 /**
@@ -11,7 +14,19 @@ import "./@openzeppelin/contracts/access/AccessControl.sol";
  * @dev Implementation of a Simple Token.
  */
 contract SimpleToken is ERC20, AccessControl {
-    uint256 immutable initialSupply;
+    using BitMaps for BitMaps.BitMap;
+
+    uint256 public immutable initialSupply;
+
+    struct Airdrop {
+			bytes32 merkleRoot;
+			BitMaps.BitMap claimed;
+    }
+    event MerkleRootChanged(bytes32 merkleRoot);
+    event Claimed(address claimant, uint256 amount);
+
+    uint256 public numberOfAirdrops = 0;
+    mapping (uint => Airdrop) airdrops;
 
 		/**
      * @dev Constructor.
@@ -40,5 +55,33 @@ contract SimpleToken is ERC20, AccessControl {
 
 		function getInitialSupply() public view returns (uint256) {
 			return initialSupply;
+		}
+		
+		function newAirdrop(bytes32 _merkleRoot) public onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 airdropId) {
+				airdropId = numberOfAirdrops;
+				Airdrop storage _drop = airdrops[airdropId];
+				_drop.merkleRoot = _merkleRoot;
+        emit MerkleRootChanged(_merkleRoot);
+				numberOfAirdrops += 1;
+    }
+
+		function isClaimed(uint256 airdropIndex, uint256 claimIndex) public view returns (bool) {
+        return airdrops[airdropIndex].claimed.get(claimIndex);
+		}
+		
+		function claimTokens(uint256 airdropIndex, uint256 claimAmount, bytes32[] calldata merkleProof) external {
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender, claimAmount));
+        (bool valid, uint256 claimIndex) = MerkleProof.verify(merkleProof, airdrops[airdropIndex].merkleRoot, leaf);
+				require(valid, "Failed to verify proof");
+				require(!isClaimed(airdropIndex, claimIndex), "Tokens already claimed for this airdrop");
+				airdrops[airdropIndex].claimed.set(claimIndex);
+        
+        emit Claimed(msg.sender, claimAmount);
+
+        _transfer(address(this), msg.sender, claimAmount);
+    }
+
+		function getAirdropInfo(uint256 _index) public view returns (bytes32) {
+			return airdrops[_index].merkleRoot;
 		}
 }
