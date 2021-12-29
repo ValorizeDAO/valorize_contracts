@@ -60,6 +60,9 @@ contract SimpleToken is ERC20, AccessControl {
 		
 		function newAirdrop(bytes32 _merkleRoot) public onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 airdropId) {
 				airdropId = numberOfAirdrops;
+				if(numberOfAirdrops > 0) {
+						require(airdrops[numberOfAirdrops - 1].isFinished, "Airdrop currently active, creation failed");
+				}
 				Airdrop storage _drop = airdrops[airdropId];
 				_drop.merkleRoot = _merkleRoot;
         emit MerkleRootChanged(_merkleRoot);

@@ -174,5 +174,10 @@ describe("SimpleToken", () => {
       const { isFinished } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
       await expect(isFinished).to.equal(false);
     })
+    it("should not allow you to create a new airdrop until the previous one isFinished", async () => {
+      await expect(
+        simpleToken.connect(admin1).newAirdrop(merkleTree.getHexRoot() )
+      ).to.be.revertedWith("Airdrop currently active, creation failed");
+    })
   })
 })
