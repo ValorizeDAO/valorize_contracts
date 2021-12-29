@@ -157,7 +157,7 @@ describe("SimpleToken", () => {
       await expect(root).to.equal(merkleTree.getHexRoot());
     })
   })
-  describe.only("Sweep", async () => {
+  describe("Sweep", async () => {
     let merkleTree: MerkleTree
     beforeEach(async () => {
       await setupSimpleToken()
@@ -170,7 +170,7 @@ describe("SimpleToken", () => {
       const root = merkleTree.getHexRoot()
       await simpleToken.connect(admin1).newAirdrop(root)
     })
-    it("should allow you to get the airdrop information", async () => {
+    it("should set isFinished to false on creation", async () => {
       const { isFinished } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
       await expect(isFinished).to.equal(false);
     })
