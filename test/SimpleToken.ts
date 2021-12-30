@@ -86,32 +86,23 @@ describe("SimpleToken", () => {
     })
     const setMerkleRoot = async () => {
       const root = merkleTree.getHexRoot()
-      await simpleToken.connect(admin1).newAirdrop(root)
+      await simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("100000000000"))
     }
 
     it("should allow admin to set merkle Tree Root for airdrops", async () => {
       const root = merkleTree.getHexRoot()
       await expect(
-        simpleToken.connect(addresses[8]).newAirdrop(root)
+        simpleToken.connect(addresses[8]).newAirdrop(root, BigNumber.from("100000000000"))
       ).to.be.revertedWith(
         "AccessControl: account 0xfabb0ac9d68b0b445fb7357272ff202c5651694a is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
       );
-      await expect(await simpleToken.connect(admin1).newAirdrop(root)).to.be.ok;
-    })
-
-    it("should create an airdrop with a new index each time 'newAirdrop' is called", async () => {
-      const root = merkleTree.getHexRoot()
-      await expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("0"));
-      await simpleToken.connect(admin1).newAirdrop(root)
-      await expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("1"));
-      await simpleToken.connect(admin2).newAirdrop(root)
-      await expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("2"));
+      expect(await simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("100000000000"))).to.be.ok;
     })
 
     it("should emit a MerkleRootChanged Event on setting", async () => {
       const root = merkleTree.getHexRoot()
       await expect(
-        simpleToken.connect(admin1).newAirdrop(root))
+        simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("100000000000")))
         .to.emit(simpleToken, 'MerkleRootChanged')
         .withArgs(root);
     })
@@ -123,7 +114,7 @@ describe("SimpleToken", () => {
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
       const proof = merkleTree.getHexProof(leaf)
       await simpleToken.connect(addresses[0]).claimTokens(0, expectedBalance, proof);
-      await expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
+      expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
     })
 
     it("should emit a Claimed event when claiming airdropped tokens", async () => {
@@ -147,14 +138,14 @@ describe("SimpleToken", () => {
       await expect(
         simpleToken.connect(addresses[0]).claimTokens(0, expectedBalance, proof)
       ).to.be.revertedWith("Tokens already claimed for this airdrop");
-      await expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
+      expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
     })
 
     it("should allow you to get the airdrop information", async () => {
       await setMerkleRoot()
 
       const { root } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
-      await expect(root).to.equal(merkleTree.getHexRoot());
+      expect(root).to.equal(merkleTree.getHexRoot());
     })
   })
   describe("Sweep", async () => {
@@ -168,16 +159,46 @@ describe("SimpleToken", () => {
       ].map((baseNode: (String | BigNumber)[]) => ethers.utils.solidityKeccak256(['address', 'uint256'], [baseNode[0], baseNode[1]]))
       merkleTree = new MerkleTree(leaves, keccak_256, { sort: true })
       const root = merkleTree.getHexRoot()
-      await simpleToken.connect(admin1).newAirdrop(root)
+      await simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("100000000000"))
     })
     it("should set isFinished to false on creation", async () => {
       const { isFinished } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
-      await expect(isFinished).to.equal(false);
+      expect(isFinished).to.equal(false);
     })
-    it("should not allow you to create a new airdrop until the previous one isFinished", async () => {
+
+    it("should not allow you to create a new airdrop if the previous one is not finished", async () => {
       await expect(
-        simpleToken.connect(admin1).newAirdrop(merkleTree.getHexRoot() )
+        simpleToken.connect(admin1).newAirdrop(merkleTree.getHexRoot(), BigNumber.from("100000000000"))
       ).to.be.revertedWith("Airdrop currently active, creation failed");
+    })
+
+    it("should only allow you to finish an airdrop if the claimperiod has ended", async () => {
+      await expect(
+        simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+      ).to.be.revertedWith("Airdrop claim period still active");
+
+      await ethers.provider.send("evm_increaseTime", [100000000010])
+      await ethers.provider.send("evm_mine", [])
+      await expect(
+       simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+      ).to.be.ok
+    })
+
+    it("should create an airdrop with a new index each time 'newAirdrop' is called", async () => {
+      const root = merkleTree.getHexRoot()
+      expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("1"));
+
+      await ethers.provider.send("evm_increaseTime", [100000000010])
+      await ethers.provider.send("evm_mine", [])
+      await simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+
+      await simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("0"))
+      expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("2"));
+
+      await simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+
+      await simpleToken.connect(admin2).newAirdrop(root, BigNumber.from("0"))
+      await expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("3"));
     })
   })
 })
