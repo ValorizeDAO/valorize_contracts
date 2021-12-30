@@ -101,10 +101,11 @@ describe("SimpleToken", () => {
 
     it("should emit a MerkleRootChanged Event on setting", async () => {
       const root = merkleTree.getHexRoot()
+      await ethers.provider.send("evm_mine", [200000000000]);
       await expect(
         simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("100000000000")))
-        .to.emit(simpleToken, 'MerkleRootChanged')
-        .withArgs(root);
+        .to.emit(simpleToken, 'NewAirdrop')
+        .withArgs(0, root, BigNumber.from("300000000001"));
     })
 
     it("should allow people to claim their alloted tokens", async () => {
@@ -174,14 +175,23 @@ describe("SimpleToken", () => {
 
     it("should only allow you to finish an airdrop if the claimperiod has ended", async () => {
       await expect(
-        simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+        simpleToken.connect(admin1).completeAirdrop()
       ).to.be.revertedWith("Airdrop claim period still active");
 
       await ethers.provider.send("evm_increaseTime", [100000000010])
       await ethers.provider.send("evm_mine", [])
       await expect(
-       simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+       simpleToken.connect(admin1).completeAirdrop()
       ).to.be.ok
+    })
+
+    it("should emit an AirdropComplete event when completing an airdrop", async () => {
+      await ethers.provider.send("evm_increaseTime", [100000000010])
+      await ethers.provider.send("evm_mine", [])
+      await expect(
+       simpleToken.connect(admin1).completeAirdrop()
+        ).to.emit(simpleToken, 'AirdropComplete')
+        .withArgs(0);
     })
 
     it("should create an airdrop with a new index each time 'newAirdrop' is called", async () => {
@@ -190,15 +200,39 @@ describe("SimpleToken", () => {
 
       await ethers.provider.send("evm_increaseTime", [100000000010])
       await ethers.provider.send("evm_mine", [])
-      await simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+      await simpleToken.connect(admin1).completeAirdrop()
 
       await simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("0"))
       expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("2"));
 
-      await simpleToken.connect(admin1).completeAirdrop(ethers.constants.AddressZero)
+      await simpleToken.connect(admin1).completeAirdrop()
 
       await simpleToken.connect(admin2).newAirdrop(root, BigNumber.from("0"))
       await expect(await simpleToken.numberOfAirdrops()).to.equal(BigNumber.from("3"));
+    })
+
+    it("should allow you to sweep the leftover funds if no airdrop is running", async () => {
+      await expect(
+        simpleToken.connect(admin1).sweepTokens(await admin1.getAddress())
+      ).to.be.revertedWith("Cannot sweep until airdrop is finished");
+
+      await ethers.provider.send("evm_increaseTime", [100000000010])
+      await ethers.provider.send("evm_mine", [])
+      await simpleToken.connect(admin1).completeAirdrop()
+
+      expect(await simpleToken.balanceOf(await admin1.getAddress())).to.equal(BigNumber.from(0));
+      await simpleToken.connect(admin1).sweepTokens(await admin1.getAddress());
+      expect(await simpleToken.balanceOf(await admin1.getAddress())).to.equal(AIRDROP_SUPPLY);
+    })
+
+    it("should emit a Sweep event when sweeping funds to an address", async () => {
+      await ethers.provider.send("evm_increaseTime", [100000000010])
+      await ethers.provider.send("evm_mine", [])
+      await simpleToken.connect(admin1).completeAirdrop()
+      await expect(
+          simpleToken.connect(admin1).sweepTokens(await admin1.getAddress())
+        ).to.emit(simpleToken, 'Sweep')
+        .withArgs(await admin1.getAddress(), AIRDROP_SUPPLY);
     })
   })
 })

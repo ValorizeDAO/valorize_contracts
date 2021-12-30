@@ -6,7 +6,7 @@ import "./@openzeppelin/contracts/access/AccessControl.sol";
 import "./@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Simple Token
@@ -24,8 +24,10 @@ contract SimpleToken is ERC20, AccessControl {
 			uint256 claimPeriodEnds;
 			BitMaps.BitMap claimed;
     }
-    event MerkleRootChanged(bytes32 merkleRoot);
+    event NewAirdrop(uint256 index, bytes32 merkleRoot, uint256 claimPeriod);
     event Claimed(address claimant, uint256 amount);
+    event AirdropComplete(uint256 index);
+    event Sweep(address destination, uint256 amount);
 
     uint256 public numberOfAirdrops = 0;
     mapping (uint => Airdrop) airdrops;
@@ -67,7 +69,7 @@ contract SimpleToken is ERC20, AccessControl {
 				Airdrop storage _drop = airdrops[airdropId];
 				_drop.merkleRoot = _merkleRoot;
 				_drop.claimPeriodEnds = block.timestamp + _timeLimit;
-        emit MerkleRootChanged(_merkleRoot);
+        emit NewAirdrop(airdropId, _merkleRoot, _drop.claimPeriodEnds);
 				numberOfAirdrops += 1;
     }
 
@@ -102,12 +104,24 @@ contract SimpleToken is ERC20, AccessControl {
 		
 		/**
 		 * @dev Requires claimPeriod of airdrop to have finished
-		 * @param _destination address to sweep the funds.
 		 */
-		function completeAirdrop(address _destination) external {
+		function completeAirdrop() external {
 				require(numberOfAirdrops > 0, "No airdrops active");
 			  uint256 claimPeriodEnds = airdrops[numberOfAirdrops - 1].claimPeriodEnds;
 			  require(block.timestamp > claimPeriodEnds, "Airdrop claim period still active");
 				airdrops[numberOfAirdrops - 1].isFinished = true;
+				emit AirdropComplete(numberOfAirdrops - 1);
+		}
+
+		/**
+		 * @dev Requires last airdrop to have finished
+		 * @param _destination to sweep funds in the contract to
+		 */
+		function sweepTokens(address _destination) external onlyRole(DEFAULT_ADMIN_ROLE) {
+				require(numberOfAirdrops > 0, "No airdrops active");
+			  require(airdrops[numberOfAirdrops - 1].isFinished, "Cannot sweep until airdrop is finished");
+				uint256 amountToSweep = balanceOf(address(this));
+        _transfer(address(this), _destination, amountToSweep);
+				emit Sweep(_destination, amountToSweep);
 		}
 }
