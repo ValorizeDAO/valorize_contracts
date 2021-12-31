@@ -6,7 +6,7 @@ import "./@openzeppelin/contracts/access/AccessControl.sol";
 import "./@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 /**
  * @title Simple Token
