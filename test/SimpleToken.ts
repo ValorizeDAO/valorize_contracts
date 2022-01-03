@@ -114,7 +114,7 @@ describe("SimpleToken", () => {
       const expectedBalance = BigNumber.from("1000000000000000000000")
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
       const proof = merkleTree.getHexProof(leaf)
-      await simpleToken.connect(addresses[0]).claimTokens(0, expectedBalance, proof);
+      await simpleToken.connect(addresses[0]).claimTokens(expectedBalance, proof);
       expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
     })
 
@@ -124,7 +124,7 @@ describe("SimpleToken", () => {
       const expectedBalance = BigNumber.from("1000000000000000000000")
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
       const proof = merkleTree.getHexProof(leaf)
-      await expect(simpleToken.connect(addresses[0]).claimTokens(0, expectedBalance, proof))
+      await expect(simpleToken.connect(addresses[0]).claimTokens(expectedBalance, proof))
         .to.emit(simpleToken, 'Claimed')
         .withArgs(await addresses[0].getAddress(), expectedBalance);
     })
@@ -135,9 +135,9 @@ describe("SimpleToken", () => {
       const expectedBalance = BigNumber.from("1000000000000000000000")
       const leaf = ethers.utils.solidityKeccak256(['address', 'uint256'], [await addresses[0].getAddress(), expectedBalance])
       const proof = merkleTree.getHexProof(leaf)
-      await simpleToken.connect(addresses[0]).claimTokens(0, expectedBalance, proof);
+      await simpleToken.connect(addresses[0]).claimTokens(expectedBalance, proof);
       await expect(
-        simpleToken.connect(addresses[0]).claimTokens(0, expectedBalance, proof)
+        simpleToken.connect(addresses[0]).claimTokens(expectedBalance, proof)
       ).to.be.revertedWith("Tokens already claimed for this airdrop");
       expect(await simpleToken.balanceOf(await addresses[0].getAddress())).to.equal(expectedBalance);
     })
@@ -162,9 +162,9 @@ describe("SimpleToken", () => {
       const root = merkleTree.getHexRoot()
       await simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("100000000000"))
     })
-    it("should set isFinished to false on creation", async () => {
-      const { isFinished } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
-      expect(isFinished).to.equal(false);
+    it("should set isComplete to false on creation", async () => {
+      const { isComplete } = await simpleToken.connect(addresses[0]).getAirdropInfo(0);
+      expect(isComplete).to.equal(false);
     })
 
     it("should not allow you to create a new airdrop if the previous one is not finished", async () => {

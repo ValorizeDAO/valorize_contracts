@@ -20,7 +20,7 @@ contract SimpleToken is ERC20, AccessControl {
 
     struct Airdrop {
 			bytes32 merkleRoot;
-			bool isFinished;
+			bool isComplete;
 			uint256 claimPeriodEnds;
 			BitMaps.BitMap claimed;
     }
@@ -64,7 +64,7 @@ contract SimpleToken is ERC20, AccessControl {
 		function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit) public onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 airdropId) {
 				airdropId = numberOfAirdrops;
 				if(numberOfAirdrops > 0) {
-						require(airdrops[numberOfAirdrops - 1].isFinished, "Airdrop currently active, creation failed");
+						require(airdrops[numberOfAirdrops - 1].isComplete, "Airdrop currently active, creation failed");
 				}
 				Airdrop storage _drop = airdrops[airdropId];
 				_drop.merkleRoot = _merkleRoot;
@@ -79,11 +79,11 @@ contract SimpleToken is ERC20, AccessControl {
 		
 		/**
 		 * @dev Uses merkle proofs to verify that the amount is equivalent to the user's claim
-		 * @param airdropIndex the index of the airdrop map
 		 * @param claimAmount this must be calculated off chain and can be verified with the merkleProof
 		 * @param merkleProof calculated using MerkleProof.js
 		 */
-		function claimTokens(uint256 airdropIndex, uint256 claimAmount, bytes32[] calldata merkleProof) external {
+		function claimTokens(uint256 claimAmount, bytes32[] calldata merkleProof) external {
+				uint256 airdropIndex = numberOfAirdrops - 1;
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, claimAmount));
         (bool valid, uint256 claimIndex) = MerkleProof.verify(merkleProof, airdrops[airdropIndex].merkleRoot, leaf);
 				require(valid, "Failed to verify proof");
@@ -95,9 +95,9 @@ contract SimpleToken is ERC20, AccessControl {
         _transfer(address(this), msg.sender, claimAmount);
     }
 
-		function getAirdropInfo(uint256 _index) public view returns (bytes32 root, uint256 claimPeriodEnds, bool isFinished) {
+		function getAirdropInfo(uint256 _index) public view returns (bytes32 root, uint256 claimPeriodEnds, bool isComplete) {
 				root = airdrops[_index].merkleRoot;
-				isFinished = airdrops[_index].isFinished;
+				isComplete = airdrops[_index].isComplete;
 				claimPeriodEnds = airdrops[_index].claimPeriodEnds;
 		}
 		
@@ -109,7 +109,7 @@ contract SimpleToken is ERC20, AccessControl {
 				require(numberOfAirdrops > 0, "No airdrops active");
 			  uint256 claimPeriodEnds = airdrops[numberOfAirdrops - 1].claimPeriodEnds;
 			  require(block.timestamp > claimPeriodEnds, "Airdrop claim period still active");
-				airdrops[numberOfAirdrops - 1].isFinished = true;
+				airdrops[numberOfAirdrops - 1].isComplete = true;
 				emit AirdropComplete(numberOfAirdrops - 1);
 		}
 
@@ -119,7 +119,7 @@ contract SimpleToken is ERC20, AccessControl {
 		 */
 		function sweepTokens(address _destination) external onlyRole(DEFAULT_ADMIN_ROLE) {
 				require(numberOfAirdrops > 0, "No airdrops active");
-			  require(airdrops[numberOfAirdrops - 1].isFinished, "Cannot sweep until airdrop is finished");
+			  require(airdrops[numberOfAirdrops - 1].isComplete, "Cannot sweep until airdrop is finished");
 				uint256 amountToSweep = balanceOf(address(this));
         _transfer(address(this), _destination, amountToSweep);
 				emit Sweep(_destination, amountToSweep);
