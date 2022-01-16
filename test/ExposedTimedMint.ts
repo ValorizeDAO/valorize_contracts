@@ -10,7 +10,7 @@ chai.use(solidity);
 
 const { expect } = chai;
 
-describe("ExposedTimedMint", () => {
+describe.only("ExposedTimedMint", () => {
   let exposedTimedMint: ExposedTimedMint,
       deployer: Signer,
       admin1: Signer,
@@ -21,10 +21,8 @@ describe("ExposedTimedMint", () => {
   const setupExposedTimedMint = async () => {
     [deployer, admin1, admin2, vault, ...addresses] = await ethers.getSigners();
     exposedTimedMint = await new ExposedTimedMintFactory(deployer).deploy(
-      //await vault.getAddress(),
       "Simple Token",
       "SIMPL",
-      //[await admin1.getAddress(), await admin2.getAddress()]
     );
     await exposedTimedMint.deployed();
   }
@@ -51,17 +49,14 @@ describe("ExposedTimedMint", () => {
     })
 
     it("should set the time until next mint", async () => {
-      const noDelay = ethers.BigNumber.from("2");
-      const noDelayTx = await exposedTimedMint.setTimeDelay(noDelay);
-      const noDelayMintTime = await exposedTimedMint.setNextMintTime();
-      const noDelayTUNM = await exposedTimedMint.timeUntilNextMint();
       const delay = ethers.BigNumber.from("1000");
-      //default provider / robsten provider
       const delayTx = await exposedTimedMint.setTimeDelay(delay);
       const mintTime = await exposedTimedMint.setNextMintTime();
       const delayedTUNM = await exposedTimedMint.timeUntilNextMint();
-      expect(delayedTUNM.toString()).to.equal(noDelayTUNM.add(delay).toString());
-      //to equal mintTime.toString() returns the value of actualTUNM and object Object
+      await ethers.provider.send("evm_increaseTime", [100000000010])
+      await ethers.provider.send("evm_mine", [])
+      const currentTUNM = await exposedTimedMint.timeUntilNextMint();
+      expect(delayedTUNM).to.equal(currentTUNM);
     })
   })
   describe("Timed Minting", () => {
@@ -72,9 +67,6 @@ describe("ExposedTimedMint", () => {
       const delayTx = await exposedTimedMint.setTimeDelay(delay);
       const activeDelay = await exposedTimedMint.timeDelayActive();
       expect(activeDelay).to.equal(true);
-      //if Delay is set to 0 timeDelayActive returns true :(
-      //if Delay is not set then timeDelayActive returns false
-      //Capital letter only if prototype
     })
 
     it("should allow you to mint when time delay is not active", async () => {
@@ -86,7 +78,7 @@ describe("ExposedTimedMint", () => {
       const contractBalance = await exposedTimedMint.balanceOf(contractAddress);
       expect(mintedTokenAmount).to.equal(contractBalance);
     })
-//question: how to test internal state variables?
+
     it("should not allow you to mint when time delay is active and current time is less than time until next mint", async () => {
       const cap = ethers.BigNumber.from("50000");
       const capTx = await exposedTimedMint.setMintCap(cap);
