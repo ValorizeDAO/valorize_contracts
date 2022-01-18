@@ -32,7 +32,6 @@ contract Erc20TimedMint is ERC20 {
     {
         if(timeDelayActive) {
           require(block.timestamp >= timeUntilNextMint, "ERC20: Cannot mint yet");
-          //newtimeuntilnextmint every time you mint it should set a new time until next min. timestamp new mint
           require(amount <= mintCap, "ERC20: Mint exceeds maximum amount");
           _setNextMintTime();
         }
