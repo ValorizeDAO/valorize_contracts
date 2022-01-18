@@ -44,7 +44,7 @@ contract SimpleToken is ERC20, AccessControl {
     constructor(
         uint256   _freeSupply,
         uint256   _airdropSupply,
-        address   vault, 
+        address   vault,
         string    memory name,
         string    memory symbol,
         address[] memory admins
@@ -60,7 +60,7 @@ contract SimpleToken is ERC20, AccessControl {
 		function getInitialSupply() public view returns (uint256) {
 			  return initialSupply;
 		}
-		
+
 		function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit) public onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 airdropId) {
 				airdropId = numberOfAirdrops;
 				if(numberOfAirdrops > 0) {
@@ -76,7 +76,7 @@ contract SimpleToken is ERC20, AccessControl {
 		function isClaimed(uint256 airdropIndex, uint256 claimIndex) public view returns (bool) {
         return airdrops[airdropIndex].claimed.get(claimIndex);
 		}
-		
+
 		/**
 		 * @dev Uses merkle proofs to verify that the amount is equivalent to the user's claim
 		 * @param claimAmount this must be calculated off chain and can be verified with the merkleProof
@@ -89,7 +89,7 @@ contract SimpleToken is ERC20, AccessControl {
 				require(valid, "Failed to verify proof");
 				require(!isClaimed(airdropIndex, claimIndex), "Tokens already claimed for this airdrop");
 				airdrops[airdropIndex].claimed.set(claimIndex);
-        
+
         emit Claimed(msg.sender, claimAmount);
 
         _transfer(address(this), msg.sender, claimAmount);
@@ -100,8 +100,8 @@ contract SimpleToken is ERC20, AccessControl {
 				isComplete = airdrops[_index].isComplete;
 				claimPeriodEnds = airdrops[_index].claimPeriodEnds;
 		}
-		
-		
+
+
 		/**
 		 * @dev Requires claimPeriod of airdrop to have finished
 		 */
