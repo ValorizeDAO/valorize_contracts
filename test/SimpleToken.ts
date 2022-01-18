@@ -21,7 +21,7 @@ const FREE_SUPPLY = TEN_MILLION_TOKENS
 const AIRDROP_SUPPLY = ONE_TOKEN.mul(BigNumber.from("1000000"))
 
 describe("SimpleToken", () => {
-  let simpleToken: SimpleToken, 
+  let simpleToken: SimpleToken,
       deployer: Signer,
       admin1: Signer,
       admin2: Signer,
