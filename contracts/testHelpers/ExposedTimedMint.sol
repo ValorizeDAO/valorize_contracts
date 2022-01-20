@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.6;
 
-import "./Erc20TimedMint.sol";
+import "../tokens/standards/ERC20TimedMint.sol";
 
 /**
- * @title ERC20TimedMint
- * @author Javier Gonzalez and Marco Huberts
- * @dev Implementation of minting functionality for a mintable token.
+ * @title ExposedTimedMint
+ * @author Marco Huberts
+ * @dev Exposed contract to test internal functions of ERC20TimedMint
  * @notice ExposedTimedMint inherits the Erc20TimedMint functionality
  * and prevents minting within a timeframe.
  */

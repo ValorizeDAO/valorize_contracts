@@ -4,7 +4,7 @@ pragma solidity 0.8.6;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/structs/BitMaps.sol";
-import "./utils/MerkleProof.sol";
+import "../utils/MerkleProof.sol";
 
 //import "hardhat/console.sol";
 
@@ -13,7 +13,7 @@ import "./utils/MerkleProof.sol";
  * @author Javier Gonzalez
  * @dev Implementation of a Simple Token.
  */
-contract SimpleToken is ERC20, AccessControl {
+contract SimpleToken is ERC20, AccessControl, Airdroppable {
     using BitMaps for BitMaps.BitMap;
 
     uint256 public immutable initialSupply;
@@ -33,9 +33,9 @@ contract SimpleToken is ERC20, AccessControl {
     mapping (uint => Airdrop) airdrops;
 
 		/**
-     * @dev Constructor.
-     * @param _freeSupply The number of tokens to issue to the contract deployer.
-     * @param _airdropSupply The number of tokens to reserve for the airdrop.
+		 * @notice Launches contract, mints tokens for a vault and for an airdrop
+     * @param _freeSupply The number of tokens to issue to the contract deployer
+     * @param _airdropSupply The number of tokens to reserve for the airdrop
      * @param vault The address to send the free supply to
      * @param name The ERC20 token name
      * @param symbol The ERC20 token symbol
@@ -61,6 +61,12 @@ contract SimpleToken is ERC20, AccessControl {
 			  return initialSupply;
 		}
 
+		/**
+		 * @notice Creates a new airdrop if there is no other airdrop active. 
+		 * @dev Does not verify if the contract has enough liquidity to fullfill the airdrop, this must be done off-chain.
+		 * @param claimAmount this must be calculated off chain and can be verified with the merkleProof
+		 * @param merkleProof calculated using MerkleProof.js
+		 */
 		function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit) public onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 airdropId) {
 				airdropId = numberOfAirdrops;
 				if(numberOfAirdrops > 0) {
@@ -78,6 +84,7 @@ contract SimpleToken is ERC20, AccessControl {
 		}
 
 		/**
+		 * @notice Sweep the tokens from airdrop to user. User needs to know the amount that is alloted to them.
 		 * @dev Uses merkle proofs to verify that the amount is equivalent to the user's claim
 		 * @param claimAmount this must be calculated off chain and can be verified with the merkleProof
 		 * @param merkleProof calculated using MerkleProof.js
@@ -103,6 +110,7 @@ contract SimpleToken is ERC20, AccessControl {
 
 
 		/**
+		 * @notice Mark airdrop as completed which allows sweeping of the funds, and creating a new airdrop.
 		 * @dev Requires claimPeriod of airdrop to have finished
 		 */
 		function completeAirdrop() external {
@@ -114,8 +122,9 @@ contract SimpleToken is ERC20, AccessControl {
 		}
 
 		/**
+		 * @notice Sweeps leftover tokens from airdrop to a destination address
 		 * @dev Requires last airdrop to have finished
-		 * @param _destination to sweep funds in the contract to
+		 * @param _destination to send funds to
 		 */
 		function sweepTokens(address _destination) external onlyRole(DEFAULT_ADMIN_ROLE) {
 				require(numberOfAirdrops > 0, "No airdrops active");
