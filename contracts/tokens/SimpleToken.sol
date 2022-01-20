@@ -41,11 +41,11 @@ contract SimpleToken is ERC20, AccessControl, Airdroppable {
         }
     }
 
-		function getInitialSupply() public view returns (uint256) {
+		function getInitialSupply() external view returns (uint256) {
 			  return initialSupply;
 		}
 
-		function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit) public onlyRole(DEFAULT_ADMIN_ROLE) 
+		function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit) external onlyRole(DEFAULT_ADMIN_ROLE) 
         returns (uint256 airdropId) {
         return _newAirdrop(_merkleRoot, _timeLimit);
     }
