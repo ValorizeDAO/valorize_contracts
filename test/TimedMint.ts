@@ -166,7 +166,7 @@ describe.only("TimedMint", () => {
   describe("Set an unlimited supply cap", async () => {
     beforeEach(setupExposedTimedMintAgain)
 
-    it("should deploy with unlimited supply when supply cap is set to zero", async () => {
+    it("should deploy with unlimited supply", async () => {
       const capUnlimited = ethers.BigNumber.from("115792089237316195423570985008687907853269984665640564039457584007913129639935");
       expect(await exposedTimedMint.supplyCap()).to.equal(capUnlimited);
     })
