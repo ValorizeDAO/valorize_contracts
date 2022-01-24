@@ -16,8 +16,8 @@ import "../utils/Airdroppable.sol";
 contract SimpleToken is ERC20, AccessControl, Airdroppable {
     uint256 public immutable initialSupply;
 
-		/**
-		 * @notice Launches contract, mints tokens for a vault and for an airdrop
+    /**
+     * @notice Launches contract, mints tokens for a vault and for an airdrop
      * @param _freeSupply The number of tokens to issue to the contract deployer
      * @param _airdropSupply The number of tokens to reserve for the airdrop
      * @param vault The address to send the free supply to
@@ -26,27 +26,30 @@ contract SimpleToken is ERC20, AccessControl, Airdroppable {
      * @param admins A list of addresses that are able to call admin functions
      */
     constructor(
-        uint256   _freeSupply,
-        uint256   _airdropSupply,
-        address   vault,
-        string    memory name,
-        string    memory symbol,
+        uint256 _freeSupply,
+        uint256 _airdropSupply,
+        address vault,
+        string memory name,
+        string memory symbol,
         address[] memory admins
     ) ERC20(name, symbol) {
         _mint(vault, _freeSupply);
         _mint(address(this), _airdropSupply);
         initialSupply = _freeSupply + _airdropSupply;
-        for (uint i = 0; i < admins.length; i++) {
+        for (uint256 i = 0; i < admins.length; i++) {
             _setupRole(DEFAULT_ADMIN_ROLE, admins[i]);
         }
     }
 
-		function getInitialSupply() external view returns (uint256) {
-			  return initialSupply;
-		}
+    function getInitialSupply() external view returns (uint256) {
+        return initialSupply;
+    }
 
-		function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit) external onlyRole(DEFAULT_ADMIN_ROLE) 
-        returns (uint256 airdropId) {
+    function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        returns (uint256 airdropId)
+    {
         return _newAirdrop(_merkleRoot, _timeLimit);
     }
 
@@ -54,12 +57,14 @@ contract SimpleToken is ERC20, AccessControl, Airdroppable {
         _completeAirdrop();
     }
 
-    function sweepTokens(address _destination) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function sweepTokens(address _destination)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _sweepTokens(_destination, balanceOf(address(this)));
     }
-		
-		function _sweep(address to, uint256 amount) internal virtual override {
-			  _transfer(address(this), to, amount);
-		} 
 
+    function _sweep(address to, uint256 amount) internal virtual override {
+        _transfer(address(this), to, amount);
+    }
 }

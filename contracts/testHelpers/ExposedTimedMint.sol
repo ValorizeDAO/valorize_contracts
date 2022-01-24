@@ -13,29 +13,23 @@ import "../tokens/standards/ERC20TimedMint.sol";
  */
 
 contract ExposedTimedMint is Erc20TimedMint {
-
-  constructor (
-        string memory _name,
-        string memory _symbol
-    )
+    constructor(string memory _name, string memory _symbol)
         Erc20TimedMint(_name, _symbol)
-    {
+    {}
 
+    function mint(address to, uint256 amount) public {
+        return _mint(to, amount);
     }
 
-  function mint(address to, uint256 amount) public {
-    return _mint(to, amount);
-  }
+    function setTimeDelay(uint256 _timeDelay) public {
+        return _setTimeDelay(_timeDelay);
+    }
 
-  function setTimeDelay(uint256 _timeDelay) public {
-    return _setTimeDelay(_timeDelay);
-  }
+    function setNextMintTime() public {
+        return _setNextMintTime();
+    }
 
-  function setNextMintTime() public {
-    return _setNextMintTime();
-  }
-
-  function setMintCap(uint256 _mintCap) public {
-    return _setMintCap(_mintCap);
-  }
+    function setMintCap(uint256 _mintCap) public {
+        return _setMintCap(_mintCap);
+    }
 }
