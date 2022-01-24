@@ -15,10 +15,11 @@ import "../tokens/standards/ERC20TimedMint.sol";
 contract ExposedTimedMint is Erc20TimedMint {
 
   constructor (
+        uint256 _cap,
         string memory _name,
         string memory _symbol
     )
-        Erc20TimedMint(_name, _symbol)
+        Erc20TimedMint(_cap, _name, _symbol)
     {
 
     }

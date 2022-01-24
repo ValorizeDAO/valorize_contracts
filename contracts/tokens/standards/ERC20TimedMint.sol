@@ -12,24 +12,32 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
   */
 abstract contract Erc20TimedMint is ERC20 {
 
+    uint256 public supplyCap;
     uint256 public timeUntilNextMint;
     uint256 public mintCap;
     uint256 public timeDelay;
     bool public timeDelayActive = false;
 
     constructor (
+        uint256 cap,
         string memory name,
         string memory symbol
     )
         ERC20(name, symbol)
     {
-
+        if(cap == 0) {
+          supplyCap = 2**256-1;
+        } else {
+          supplyCap = cap; //
+        }
     }
 
     function _mint(address to, uint256 amount)
         internal
         override(ERC20)
     {
+        require(ERC20.totalSupply() + amount <= supplyCap, "CappedToken: cap exceeded");
+
         if(timeDelayActive) {
           require(block.timestamp >= timeUntilNextMint, "ERC20: Cannot mint yet");
           require(amount <= mintCap, "ERC20: Mint exceeds maximum amount");
