@@ -148,7 +148,7 @@ describe("TimedMint", () => {
       expect(await exposedTimedMint.supplyCap()).to.equal(SUPPLY_CAP1);
     })
 
-    it("should mint when the supply cap is not zero", async () => { //not necessary?
+    it("should mint when the supply cap is not zero", async () => {
       const amt = ethers.BigNumber.from("1000");
       const contractAddress = await exposedTimedMint.resolvedAddress;
       const newMint = expect(await exposedTimedMint.mint(contractAddress, amt));
