@@ -12,7 +12,7 @@ const { expect } = chai;
 const SUPPLY_CAP1 = ethers.BigNumber.from("100000") as BigNumber;
 const SUPPLY_CAP2 = "0";
 
-describe.only("TimedMint", () => {
+describe("TimedMint", () => {
   let exposedTimedMint: ExposedTimedMint,
       deployer: Signer,
       admin1: Signer,
