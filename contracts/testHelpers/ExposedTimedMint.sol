@@ -12,9 +12,9 @@ import "../tokens/standards/ERC20TimedMint.sol";
  * and prevents minting within a timeframe.
  */
 
-contract ExposedTimedMint is Erc20TimedMint {
+contract ExposedTimedMint is ERC20TimedMint {
     constructor(string memory _name, string memory _symbol)
-        Erc20TimedMint(_name, _symbol)
+        ERC20TimedMint(_name, _symbol)
     {}
 
     function mint(address to, uint256 amount) public {
