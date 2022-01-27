@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @notice ERC20TimedMint inherits the ERC20 functionality and prevents
  *         minting within a timeframe.
  */
-abstract contract Erc20TimedMint is ERC20 {
+abstract contract ERC20TimedMint is ERC20 {
     uint256 public timeUntilNextMint;
     uint256 public mintCap;
     uint256 public timeDelay;
