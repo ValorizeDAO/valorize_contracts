@@ -10,7 +10,7 @@ chai.use(solidity);
 
 const { expect } = chai;
 
-describe("TimedMint", () => {
+describe("ERC20TimedMint", () => {
   let exposedTimedMint: ExposedTimedMint,
       deployer: Signer,
       admin1: Signer,
