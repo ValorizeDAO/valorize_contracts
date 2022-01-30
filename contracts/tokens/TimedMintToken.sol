@@ -54,6 +54,10 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
         return initialSupply;
     }
 
+    function updateVault(address _vault) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        vault = _vault;
+    }
+
     function setMintGuard(uint256 _timeDelay, uint256 _mintCap) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setTimeDelay(_timeDelay);
         _setMintCap(_mintCap);
@@ -68,7 +72,7 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
         _mint(vault, amount);
     }
     
-    function setMinterAddress(address minter) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMinter(address minter) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _setupRole(MINTER_ROLE, minter);
         _setRoleAdmin(MINTER_ROLE, DEFAULT_ADMIN_ROLE);
     }
