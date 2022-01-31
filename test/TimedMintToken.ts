@@ -127,7 +127,7 @@ describe("Timed Mint Token", () => {
 
   })
 
-  describe.only("Minting", async () => {
+  describe("Minting", async () => {
     beforeEach(setupTimedMintWithMinter)
     it("should not allow you to mint until 'nextAllowedMintTime' has passed", async () => {
         await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
@@ -160,7 +160,11 @@ describe("Timed Mint Token", () => {
         expect(await timedMintToken.vault()).to.equal(await addresses[0].getAddress())
     })
 
-    it("should emit a 'NewVault' event when vault is updated", async () => {
+    it("should emit a 'VaultUpdated' event when vault is updated", async () => {
+        await expect(
+          timedMintToken.connect(admin1).updateVault(await addresses[0].getAddress())
+        ).to.emit(timedMintToken, 'VaultUpdated')
+          .withArgs(await vault.getAddress(), await addresses[0].getAddress());
     })
 
   })
