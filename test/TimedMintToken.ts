@@ -127,9 +127,13 @@ describe("Timed Mint Token", () => {
 
   })
 
-  describe("Minting", async () => {
+  describe.only("Minting", async () => {
     beforeEach(setupTimedMintWithMinter)
     it("should not allow you to mint until 'nextAllowedMintTime' has passed", async () => {
+        await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
+        await expect(
+          timedMintToken.connect(minter).mint(BN.from("10000"))
+        ).to.be.revertedWith("ERC20TimedMint: Cannot mint yet")
     })
 
     it("should allow minter to mint tokens if 'nextAllowedMintTime' is in the past", async () => {
