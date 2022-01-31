@@ -51,4 +51,9 @@ abstract contract ERC20TimedMint is ERC20 {
     function _setMintCap(uint256 _mintCap) internal {
         mintCap = _mintCap;
     }
+
+    modifier onlyAfterTimeDelay {
+        require(block.timestamp > nextAllowedMintTime, "ERC20TimedMint: Cannot call until nextAllowedMintTime has passed");
+        _;
+    }
 }

@@ -173,22 +173,38 @@ describe("Timed Mint Token", () => {
     beforeEach(setupTimedMintWithMinter)
 
     it("should only be callable by admin", async () => {
-        await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
-        await ethers.provider.send("evm_increaseTime", [31536002])
-        await ethers.provider.send("evm_mine", [])
-        await expect(
-          timedMintToken.connect(addresses[3]).setMintGuard(BN.from("10000"), BN.from("1000"))
-        ).to.be.revertedWith("AccessControl: account 0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+      await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
+      await expect(
+        timedMintToken.connect(addresses[3]).setMintGuard(BN.from("10000"), BN.from("1000"))
+      ).to.be.revertedWith("AccessControl: account 0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
 
     it("should revert if called when 'nextAllowedMintTime' is in the future", async () => {
+      await expect(
+        timedMintToken.connect(admin1).setMintGuard(BN.from("10000"), BN.from("1000"))
+      ).to.be.revertedWith("ERC20TimedMint: Cannot call until nextAllowedMintTime has passed")
     })
 
 
     it("should update minting parameters when called", async () => {
+      const blockTimestamp = "10000000000"
+      await ethers.provider.send("evm_mine", [parseInt(blockTimestamp, 10)]);
+      await timedMintToken.connect(admin1).setMintGuard(10000000000, 100000000)
+      const expectedNextAllowedMintTime = 20000000001
+      const expectedMintCap = 100000000
+      expect(await timedMintToken.mintCap()).to.equal(expectedMintCap)
+      expect(await timedMintToken.nextAllowedMintTime()).to.equal(expectedNextAllowedMintTime)
     })
 
     it("should emit a 'NewMintGuard' event when called", async () => {
+      const blockTimestamp = "100000000000"
+      await ethers.provider.send("evm_mine", [parseInt(blockTimestamp, 10)]);
+      const expectedNextAllowedMintTime = 200000000001
+      const expectedMintCap = 100000000
+      await expect(
+        timedMintToken.connect(admin1).setMintGuard(BN.from(blockTimestamp), 100000000)
+      ).to.emit(timedMintToken, 'NewMintGuard')
+        .withArgs(expectedNextAllowedMintTime, expectedMintCap);
     })
   })
   describe("Inherits Timed Mint", () => {

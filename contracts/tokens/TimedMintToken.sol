@@ -82,7 +82,6 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
      * @param _mintCap Maximum allowed mint amount
      */
     function _setMintGuard(uint256 _timeDelay, uint256 _mintCap) internal {
-        require(nextAllowedMintTime < block.timestamp, "Cannot update until mint period is over");
         _setTimeDelay(_timeDelay);
         _setMintCap(_mintCap);
         emit NewMintGuard(nextAllowedMintTime, _mintCap);
@@ -93,7 +92,7 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
      * @param _timeDelay Seconds until next allowable mint
      * @param _mintCap Maximum allowed mint amount
      */
-    function setMintGuard(uint256 _timeDelay, uint256 _mintCap) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMintGuard(uint256 _timeDelay, uint256 _mintCap) external onlyRole(DEFAULT_ADMIN_ROLE) onlyAfterTimeDelay {
         _setMintGuard(_timeDelay, _mintCap);
     }
 
