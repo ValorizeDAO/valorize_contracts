@@ -68,10 +68,10 @@ describe("Timed Mint Token", () => {
 
     it("should set the time until next mint", async () => {
       const delay = BN.from("1000");
-      const delayedTUNM = await timedMintToken.timeUntilNextMint();
+      const delayedTUNM = await timedMintToken.nextAllowedMintTime();
       await ethers.provider.send("evm_increaseTime", [100000000010])
       await ethers.provider.send("evm_mine", [])
-      const currentTUNM = await timedMintToken.timeUntilNextMint();
+      const currentTUNM = await timedMintToken.nextAllowedMintTime();
       expect(delayedTUNM).to.equal(currentTUNM);
     })
 
@@ -209,7 +209,7 @@ describe("Timed Mint Token", () => {
 
       it("should emit a MerkleRootChanged Event on setting", async () => {
         const root = merkleTree.getHexRoot()
-        const blockTimestamp = "1300000000000"
+        const blockTimestamp = "13000000000000"
         const timeDelay = BN.from("100000000000")
         const expectedAirdropEnd = BN.from(blockTimestamp).add(timeDelay).add(1)
         await ethers.provider.send("evm_mine", [parseInt(blockTimestamp, 10)]);

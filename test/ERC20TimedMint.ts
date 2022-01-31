@@ -47,17 +47,6 @@ describe("ERC20TimedMint", () => {
       var actualDelay = await exposedTimedMint.timeDelay();
       expect(actualDelay).to.equal(delay);
     })
-
-    it("should set the time until next mint", async () => {
-      const delay = ethers.BigNumber.from("1000");
-      const delayTx = await exposedTimedMint.setTimeDelay(delay);
-      const mintTime = await exposedTimedMint.setNextMintTime();
-      const delayedTUNM = await exposedTimedMint.timeUntilNextMint();
-      await ethers.provider.send("evm_increaseTime", [100000000010])
-      await ethers.provider.send("evm_mine", [])
-      const currentTUNM = await exposedTimedMint.timeUntilNextMint();
-      expect(delayedTUNM).to.equal(currentTUNM);
-    })
   })
   describe("Timed Minting", () => {
     beforeEach(setupExposedTimedMint)

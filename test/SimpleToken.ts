@@ -100,12 +100,15 @@ describe("SimpleToken", () => {
     })
 
     it("should emit a MerkleRootChanged Event on setting", async () => {
-      const root = merkleTree.getHexRoot()
-      await ethers.provider.send("evm_mine", [200000000000]);
-      await expect(
-        simpleToken.connect(admin1).newAirdrop(root, BigNumber.from("100000000000")))
-        .to.emit(simpleToken, 'NewAirdrop')
-        .withArgs(0, root, BigNumber.from("300000000001"));
+        const root = merkleTree.getHexRoot()
+        const blockTimestamp = "1300000000000"
+        const timeDelay = BigNumber.from("10000000000")
+        const expectedAirdropEnd = BigNumber.from(blockTimestamp).add(timeDelay).add(1)
+        await ethers.provider.send("evm_mine", [parseInt(blockTimestamp, 10)]);
+        await expect(
+          simpleToken.connect(admin1).newAirdrop(root, timeDelay))
+          .to.emit(simpleToken, 'NewAirdrop')
+          .withArgs(0, root, expectedAirdropEnd);
     })
 
     it("should allow people to claim their alloted tokens", async () => {
