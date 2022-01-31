@@ -9,14 +9,17 @@ import "../utils/Airdroppable.sol";
 //import "hardhat/console.sol";
 
 /**
- * @title Simple Token
+ * @title Timed Mint Token
  * @author Javier Gonzalez
- * @dev Implementation of a Timed Mint Token.
+ * @notice Scheduled On-Chain Token Distribution
  */
 contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
     uint256 public immutable initialSupply;
     address public vault;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER");
+
+    event VaultUpdated(address oldVault, address newVault);
+    event NewMintGuard(uint256 nextAllowedMintTime, uint256 maxMintAmount);
 
     /**
      * @notice Launches contract, mints tokens for a vault and for an airdrop
@@ -42,9 +45,8 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
         _mint(_vault, _freeSupply);
         _mint(address(this), _airdropSupply);
         initialSupply = _freeSupply + _airdropSupply;
-        _setTimeDelay(_timeDelay);
-        _setMintCap(_mintCap);
-        vault = _vault;
+        _setMintGuard(_timeDelay, _mintCap);
+        _updateVault(_vault);
         for (uint256 i = 0; i < admins.length; i++) {
             _setupRole(DEFAULT_ADMIN_ROLE, admins[i]);
         }
@@ -54,13 +56,43 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
         return initialSupply;
     }
 
-    function updateVault(address _vault) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    /**
+     * @dev Sets vault to a new address
+     * @param _vault Address which will be the recipient of new mints
+     */
+    function _updateVault(address _vault) internal {
+        address oldVault = vault;
         vault = _vault;
+        emit VaultUpdated(oldVault, vault);
     }
 
-    function setMintGuard(uint256 _timeDelay, uint256 _mintCap) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    /**
+     * @notice Updates vault to new address
+     * @param vault Address which will be the recipient of new mints
+     */
+    function updateVault(address vault) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _updateVault(vault);
+    }
+
+
+    /**
+     * @dev Set timeDelay and mintCap at once
+     * @param _timeDelay Seconds until next allowable mint
+     * @param _mintCap Maximum allowed mint amount
+     */
+    function _setMintGuard(uint256 _timeDelay, uint256 _mintCap) internal {
         _setTimeDelay(_timeDelay);
         _setMintCap(_mintCap);
+        emit NewMintGuard(nextAllowedMintTime, _mintCap);
+    }
+
+    /**
+     * @notice sets a time delay and a maximum mint amount
+     * @param _timeDelay Seconds until next allowable mint
+     * @param _mintCap Maximum allowed mint amount
+     */
+    function setMintGuard(uint256 _timeDelay, uint256 _mintCap) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setMintGuard(_timeDelay, _mintCap);
     }
 
     /**
