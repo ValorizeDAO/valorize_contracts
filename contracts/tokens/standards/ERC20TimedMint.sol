@@ -25,7 +25,10 @@ abstract contract ERC20TimedMint is ERC20 {
                 block.timestamp >= nextAllowedMintTime,
                 "ERC20TimedMint: Cannot mint yet"
             );
-            require(amount <= mintCap, "ERC20TimedMint: Mint exceeds maximum amount");
+            require(
+                amount <= mintCap,
+                "ERC20TimedMint: Mint exceeds maximum amount"
+            );
             _setNextMintTime();
         }
         super._mint(to, amount);
@@ -52,8 +55,11 @@ abstract contract ERC20TimedMint is ERC20 {
         mintCap = _mintCap;
     }
 
-    modifier onlyAfterTimeDelay {
-        require(block.timestamp > nextAllowedMintTime, "ERC20TimedMint: Cannot call until nextAllowedMintTime has passed");
+    modifier onlyAfterTimeDelay() {
+        require(
+            block.timestamp > nextAllowedMintTime,
+            "ERC20TimedMint: Cannot call until nextAllowedMintTime has passed"
+        );
         _;
     }
 }

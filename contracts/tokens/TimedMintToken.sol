@@ -75,7 +75,6 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
         _updateVault(_vault);
     }
 
-
     /**
      * @dev Set timeDelay and mintCap at once
      * @param _timeDelay Seconds until next allowable mint
@@ -92,7 +91,11 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
      * @param _timeDelay Seconds until next allowable mint
      * @param _mintCap Maximum allowed mint amount
      */
-    function setMintGuard(uint256 _timeDelay, uint256 _mintCap) external onlyRole(DEFAULT_ADMIN_ROLE) onlyAfterTimeDelay {
+    function setMintGuard(uint256 _timeDelay, uint256 _mintCap)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyAfterTimeDelay
+    {
         _setMintGuard(_timeDelay, _mintCap);
     }
 
@@ -104,7 +107,7 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
     function mint(uint256 amount) public onlyMinter {
         _mint(vault, amount);
     }
-    
+
     /**
      * @notice Sets minter role
      * @dev only admin can update the minter
@@ -139,7 +142,7 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
         _transfer(address(this), to, amount);
     }
 
-    modifier onlyMinter {
+    modifier onlyMinter() {
         require(msg.sender == minter, "Only Minter can call");
         _;
     }
