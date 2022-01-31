@@ -80,7 +80,7 @@ describe("ERC20TimedMint", () => {
       const contractAddress = await exposedTimedMint.resolvedAddress;
       await expect(
         exposedTimedMint.mint(contractAddress, mintedTokenAmount)
-      ).to.be.revertedWith("ERC20: Cannot mint yet");
+      ).to.be.revertedWith("ERC20TimedMint: Cannot mint yet");
     });
 
     it("should allow you to mint if current time is more than time until next mint", async () => {
@@ -109,7 +109,7 @@ describe("ERC20TimedMint", () => {
       const contractAddress = await exposedTimedMint.resolvedAddress;
       await expect(
         exposedTimedMint.mint(contractAddress, mintedTokenAmount)
-      ).to.be.revertedWith("ERC20: Cannot mint yet");
+      ).to.be.revertedWith("ERC20TimedMint: Cannot mint yet");
     });
 
     it("should not allow you to mint if mint cap is lower than amount of minted tokens", async () => {
@@ -123,7 +123,7 @@ describe("ERC20TimedMint", () => {
       await ethers.provider.send("evm_mine", []);
       await expect(
         exposedTimedMint.mint(contractAddress, mintedTokenAmount)
-      ).to.be.revertedWith("ERC20: Mint exceeds maximum amount");
+      ).to.be.revertedWith("ERC20TimedMint: Mint exceeds maximum amount");
     });
   });
 });

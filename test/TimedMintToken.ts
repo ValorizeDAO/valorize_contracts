@@ -210,10 +210,10 @@ describe("Timed Mint Token", () => {
     });
 
     it("should update minting parameters when called", async () => {
-      const blockTimestamp = "10000000000";
+      const blockTimestamp = "2000000000000";
       await ethers.provider.send("evm_mine", [parseInt(blockTimestamp, 10)]);
-      await timedMintToken.connect(admin1).setMintGuard(10000000000, 100000000);
-      const expectedNextAllowedMintTime = 20000000001;
+      await timedMintToken.connect(admin1).setMintGuard(1000000000000, 100000000);
+      const expectedNextAllowedMintTime = 3000000000001;
       const expectedMintCap = 100000000;
       expect(await timedMintToken.mintCap()).to.equal(expectedMintCap);
       expect(await timedMintToken.nextAllowedMintTime()).to.equal(
@@ -222,9 +222,9 @@ describe("Timed Mint Token", () => {
     });
 
     it("should emit a 'NewMintGuard' event when called", async () => {
-      const blockTimestamp = "100000000000";
+      const blockTimestamp = "3000000000000";
       await ethers.provider.send("evm_mine", [parseInt(blockTimestamp, 10)]);
-      const expectedNextAllowedMintTime = 200000000001;
+      const expectedNextAllowedMintTime = 6000000000001;
       const expectedMintCap = 100000000;
       await expect(
         timedMintToken
@@ -247,7 +247,7 @@ describe("Timed Mint Token", () => {
         const contractAddress = await timedMintToken.resolvedAddress;
         await expect(
           timedMintToken.connect(minter).mint(mintedTokenAmount)
-        ).to.be.revertedWith("ERC20: Cannot mint yet");
+        ).to.be.revertedWith("ERC20TimedMint: Cannot mint yet");
       });
 
       it("should allow you to mint if current time is more than time until next mint", async () => {
@@ -265,7 +265,7 @@ describe("Timed Mint Token", () => {
         const contractAddress = await timedMintToken.resolvedAddress;
         await expect(
           timedMintToken.connect(minter).mint(mintedTokenAmount)
-        ).to.be.revertedWith("ERC20: Cannot mint yet");
+        ).to.be.revertedWith("ERC20TimedMint: Cannot mint yet");
       });
 
       it("should not allow you to mint if attempting to mint higher than mint cap", async () => {
@@ -274,7 +274,7 @@ describe("Timed Mint Token", () => {
         await ethers.provider.send("evm_mine", []);
         await expect(
           timedMintToken.connect(minter).mint(mintCap.add(BN.from("3000000")))
-        ).to.be.revertedWith("ERC20: Mint exceeds maximum amount");
+        ).to.be.revertedWith("ERC20TimedMint: Mint exceeds maximum amount");
       });
     });
   });
