@@ -81,45 +81,64 @@ describe("Timed Mint Token", () => {
     })
 
   })
-  describe("Minting", async () => {
+  describe("Minter Role", async () => {
     beforeEach(setupTimedMint)
     it("should not allow anyone to mint until minter is set", async () => {
         await ethers.provider.send("evm_increaseTime", [31536001])
         await ethers.provider.send("evm_mine", [])
         await expect(
           timedMintToken.connect(minter).mint(BN.from("10000"))
-        ).to.be.revertedWith("AccessControl: account 0x15d34aaf54267db7d7c367839aaf71a00a2c6a65 is missing role 0xf0887ba65ee2024ea881d91b74c2450ef19e1557f03bed3ea9f16b037cbe2dc9")
+        ).to.be.revertedWith("Only Minter can call")
     })
 
-    it("should allow minter to mint tokens", async () => {
-        await ethers.provider.send("evm_increaseTime", [31536001])
-        await ethers.provider.send("evm_mine", [])
+    it("should store the minter publically", async () => {
+        expect(
+          await timedMintToken.minter()
+        ).to.equal(
+          ethers.utils.getAddress("0x0000000000000000000000000000000000000000")
+        )
         await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
-        await timedMintToken.connect(minter).mint(BN.from("10000"))
-        const totalSupply = await timedMintToken.totalSupply();
-        expect(totalSupply).to.equal(TOTAL_INITIAL_SUPPLY.add(BN.from("10000")))
-    })
-
-    it("should allow all minters to mint tokens", async () => {
-        await ethers.provider.send("evm_increaseTime", [31536001])
-        await ethers.provider.send("evm_mine", [])
-        await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
-        await timedMintToken.connect(minter).mint(BN.from("10000"))
-        const totalSupply = await timedMintToken.totalSupply();
-        expect(totalSupply).to.equal(TOTAL_INITIAL_SUPPLY.add(BN.from("10000")))
+        const expectedMinter = await timedMintToken.minter()
+        expect(await minter.getAddress()).to.equal(expectedMinter)
     })
 
     it("should allow admins to remove minter role", async () => {
+        await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
+        await ethers.provider.send("evm_increaseTime", [31536001])
+        await ethers.provider.send("evm_mine", [])
+        await timedMintToken.connect(minter).mint(BN.from("10000"))
+        await timedMintToken.connect(admin1).setMinter("0x0000000000000000000000000000000000000000");
+        const newMinter = await timedMintToken.minter();
+        expect(newMinter).to.equal(
+          ethers.utils.getAddress("0x0000000000000000000000000000000000000000")
+        )
+    })
+
+    it("should emit a 'MinterUpdated' event when called", async () => {
+      await expect(
+       timedMintToken.connect(admin1).setMinter(await minter.getAddress())
+      ).to.emit(timedMintToken, 'MinterUpdated')
+        .withArgs("0x0000000000000000000000000000000000000000", await minter.getAddress());
+      await expect(
+        timedMintToken.connect(admin1).setMinter(await addresses[3].getAddress())
+      ).to.emit(timedMintToken, 'MinterUpdated')
+        .withArgs(await minter.getAddress(), await addresses[3].getAddress());
+    })
+
+  })
+
+  describe("Minting", async () => {
+    beforeEach(setupTimedMintWithMinter)
+    it("should not allow you to mint until 'nextAllowedMintTime' has passed", async () => {
+    })
+
+    it("should allow minter to mint tokens if 'nextAllowedMintTime' is in the past", async () => {
         await ethers.provider.send("evm_increaseTime", [31536001])
         await ethers.provider.send("evm_mine", [])
         await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
         await timedMintToken.connect(minter).mint(BN.from("10000"))
-        await ethers.provider.send("evm_increaseTime", [31536001])
-        await ethers.provider.send("evm_mine", [])
-        await timedMintToken.connect(admin1).revokeRole(await timedMintToken.MINTER_ROLE(), await minter.getAddress());
-        await expect(
-          timedMintToken.connect(minter).mint(BN.from("10000"))
-        ).to.be.revertedWith("AccessControl: account 0x15d34aaf54267db7d7c367839aaf71a00a2c6a65 is missing role 0xf0887ba65ee2024ea881d91b74c2450ef19e1557f03bed3ea9f16b037cbe2dc9")
+        const totalSupply = await timedMintToken.totalSupply();
+        expect(totalSupply).to.equal(TOTAL_INITIAL_SUPPLY.add(BN.from("10000")))
     })
 
     it("should send newly minted tokens to the vault", async () => {
@@ -135,6 +154,33 @@ describe("Timed Mint Token", () => {
     it("should allow admins to change the vault", async () => {
         await timedMintToken.connect(admin1).updateVault(await addresses[0].getAddress())
         expect(await timedMintToken.vault()).to.equal(await addresses[0].getAddress())
+    })
+
+    it("should emit a 'NewVault' event when vault is updated", async () => {
+    })
+
+  })
+
+  describe("Mint Guard", async () => {
+    beforeEach(setupTimedMintWithMinter)
+
+    it("should only be callable by admin", async () => {
+        await timedMintToken.connect(admin1).setMinter(await minter.getAddress())
+        await ethers.provider.send("evm_increaseTime", [31536002])
+        await ethers.provider.send("evm_mine", [])
+        await expect(
+          timedMintToken.connect(addresses[3]).setMintGuard(BN.from("10000"), BN.from("1000"))
+        ).to.be.revertedWith("AccessControl: account 0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+    })
+
+    it("should revert if called when 'nextAllowedMintTime' is in the future", async () => {
+    })
+
+
+    it("should update minting parameters when called", async () => {
+    })
+
+    it("should emit a 'NewMintGuard' event when called", async () => {
     })
   })
   describe("Inherits Timed Mint", () => {

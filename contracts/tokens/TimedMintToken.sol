@@ -16,10 +16,11 @@ import "../utils/Airdroppable.sol";
 contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
     uint256 public immutable initialSupply;
     address public vault;
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER");
+    address public minter;
 
     event VaultUpdated(address oldVault, address newVault);
     event NewMintGuard(uint256 nextAllowedMintTime, uint256 maxMintAmount);
+    event MinterUpdated(address oldMinter, address newMinter);
 
     /**
      * @notice Launches contract, mints tokens for a vault and for an airdrop
@@ -68,10 +69,10 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
 
     /**
      * @notice Updates vault to new address
-     * @param vault Address which will be the recipient of new mints
+     * @param _vault Address which will be the recipient of new mints
      */
-    function updateVault(address vault) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _updateVault(vault);
+    function updateVault(address _vault) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _updateVault(_vault);
     }
 
 
@@ -81,13 +82,14 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
      * @param _mintCap Maximum allowed mint amount
      */
     function _setMintGuard(uint256 _timeDelay, uint256 _mintCap) internal {
+        require(nextAllowedMintTime < block.timestamp, "Cannot update until mint period is over");
         _setTimeDelay(_timeDelay);
         _setMintCap(_mintCap);
         emit NewMintGuard(nextAllowedMintTime, _mintCap);
     }
 
     /**
-     * @notice sets a time delay and a maximum mint amount
+     * @notice Sets a time delay for the minting function
      * @param _timeDelay Seconds until next allowable mint
      * @param _mintCap Maximum allowed mint amount
      */
@@ -100,13 +102,19 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
      * @dev requires minter role to call this function
      * @param amount Number of tokens to send to the vault
      */
-    function mint(uint256 amount) public onlyRole(MINTER_ROLE) {
+    function mint(uint256 amount) public onlyMinter {
         _mint(vault, amount);
     }
     
-    function setMinter(address minter) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setupRole(MINTER_ROLE, minter);
-        _setRoleAdmin(MINTER_ROLE, DEFAULT_ADMIN_ROLE);
+    /**
+     * @notice Sets minter role
+     * @dev only admin can update the minter
+     * @param newMinter new Minter address
+     */
+    function setMinter(address newMinter) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        address oldMinter = minter;
+        minter = newMinter;
+        emit MinterUpdated(oldMinter, newMinter);
     }
 
     function newAirdrop(bytes32 _merkleRoot, uint256 _timeLimit)
@@ -130,5 +138,10 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
 
     function _sweep(address to, uint256 amount) internal virtual override {
         _transfer(address(this), to, amount);
+    }
+
+    modifier onlyMinter {
+        require(msg.sender == minter, "Only Minter can call");
+        _;
     }
 }
