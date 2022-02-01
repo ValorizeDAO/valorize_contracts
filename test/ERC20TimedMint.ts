@@ -58,7 +58,7 @@ describe("ERC20TimedMint", () => {
       const delayTx = await exposedTimedMint.setTimeDelay(delay);
       var actualDelay = await exposedTimedMint.timeDelay();
       expect(actualDelay).to.equal(delay);
-    })
+    });
 
     it("should set the time until next mint", async () => {
       const delay = ethers.BigNumber.from("1000");
@@ -142,12 +142,13 @@ describe("ERC20TimedMint", () => {
       const delayTx = await exposedTimedMint.setTimeDelay(delay);
       const mintedTokenAmount = ethers.BigNumber.from("10000");
       const contractAddress = await exposedTimedMint.resolvedAddress;
-      await ethers.provider.send("evm_increaseTime", [100000000010])
-      await ethers.provider.send("evm_mine", [])
-      await expect(exposedTimedMint.mint(contractAddress, mintedTokenAmount)
-    ).to.be.revertedWith("ERC20TimedMint: Mint exceeds maximum amount");
-    })
-  })
+      await ethers.provider.send("evm_increaseTime", [100000000010]);
+      await ethers.provider.send("evm_mine", []);
+      await expect(
+        exposedTimedMint.mint(contractAddress, mintedTokenAmount)
+      ).to.be.revertedWith("ERC20TimedMint: Mint exceeds maximum amount");
+    });
+  });
 
   describe("Set a limited supply cap", async () => {
     beforeEach(setupExposedTimedMint)
@@ -186,7 +187,5 @@ describe("ERC20TimedMint", () => {
       const contractBalance = await exposedTimedMint.balanceOf(contractAddress);
       expect(highAmt).to.equal(contractBalance);
     })
-
-
   })
 })
