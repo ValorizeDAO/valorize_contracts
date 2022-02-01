@@ -64,10 +64,10 @@ describe("TimedMint", () => {
       const delay = ethers.BigNumber.from("1000");
       const delayTx = await exposedTimedMint.setTimeDelay(delay);
       const mintTime = await exposedTimedMint.setNextMintTime();
-      const delayedTUNM = await exposedTimedMint.timeUntilNextMint();
+      const delayedTUNM = await exposedTimedMint.nextAllowedMintTime();
       await ethers.provider.send("evm_increaseTime", [100000000010])
       await ethers.provider.send("evm_mine", [])
-      const currentTUNM = await exposedTimedMint.timeUntilNextMint();
+      const currentTUNM = await exposedTimedMint.nextAllowedMintTime();
       expect(delayedTUNM).to.equal(currentTUNM);
     })
   })
@@ -99,7 +99,7 @@ describe("TimedMint", () => {
       const mintedTokenAmount = ethers.BigNumber.from("1000");
       const contractAddress = await exposedTimedMint.resolvedAddress;
       await expect(exposedTimedMint.mint(contractAddress, mintedTokenAmount)
-    ).to.be.revertedWith("ERC20: Cannot mint yet");
+    ).to.be.revertedWith("ERC20TimedMint: Cannot mint yet");
     })
 
     it("should allow you to mint if current time is more than time until next mint", async () => {
@@ -124,7 +124,7 @@ describe("TimedMint", () => {
       const mintedTokenAmount = ethers.BigNumber.from("10000");
       const contractAddress = await exposedTimedMint.resolvedAddress;
       await expect(exposedTimedMint.mint(contractAddress, mintedTokenAmount)
-    ).to.be.revertedWith("ERC20: Cannot mint yet");
+    ).to.be.revertedWith("ERC20TimedMint: Cannot mint yet");
     })
 
     it("should not allow you to mint if mint cap is lower than amount of minted tokens", async () => {
@@ -137,7 +137,7 @@ describe("TimedMint", () => {
       await ethers.provider.send("evm_increaseTime", [100000000010])
       await ethers.provider.send("evm_mine", [])
       await expect(exposedTimedMint.mint(contractAddress, mintedTokenAmount)
-    ).to.be.revertedWith("ERC20: Mint exceeds maximum amount");
+    ).to.be.revertedWith("ERC20TimedMint: Mint exceeds maximum amount");
     })
   })
 
@@ -159,7 +159,7 @@ describe("TimedMint", () => {
     it("should not mint when the amount exceeds the supply cap", async () => {
       const amt = ethers.BigNumber.from("1000000000");
       const contractAddress = await exposedTimedMint.resolvedAddress;
-      await expect(exposedTimedMint.mint(contractAddress, amt)).to.be.revertedWith("CappedToken: cap exceeded");
+      await expect(exposedTimedMint.mint(contractAddress, amt)).to.be.revertedWith("ERC20TimedMint: cap exceeded");
     })
   })
 
