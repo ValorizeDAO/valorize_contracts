@@ -26,6 +26,7 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
      * @notice Launches contract, mints tokens for a vault and for an airdrop
      * @param _freeSupply The number of tokens to issue to the contract deployer
      * @param _airdropSupply The number of tokens to reserve for the airdrop
+     * @param _totalSupplyCap The max number of tokens that can be minted, if zero then the cap is ignored
      * @param _vault The address to send the free supply to
      * @param _timeDelay how many seconds should span until user can mint again
      * @param _mintCap how many coins can be minted each minting period
@@ -36,13 +37,14 @@ contract TimedMintToken is ERC20TimedMint, AccessControl, Airdroppable {
     constructor(
         uint256 _freeSupply,
         uint256 _airdropSupply,
+        uint256 _totalSupplyCap,
         address _vault,
         uint256 _timeDelay,
         uint256 _mintCap,
         string memory name,
         string memory symbol,
         address[] memory admins
-    ) ERC20TimedMint(name, symbol) {
+    ) ERC20TimedMint(_totalSupplyCap, name, symbol) {
         _mint(_vault, _freeSupply);
         _mint(address(this), _airdropSupply);
         initialSupply = _freeSupply + _airdropSupply;

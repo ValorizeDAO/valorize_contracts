@@ -14,6 +14,7 @@ const { expect } = chai;
 const AMOUNT_FOR_VAULT = BN.from("4000000000000000000000000");
 const AMOUNT_FOR_AIRDROP = BN.from("1000000000000000000000000");
 const TOTAL_INITIAL_SUPPLY = AMOUNT_FOR_VAULT.add(AMOUNT_FOR_AIRDROP);
+const SUPPLY_CAP = BN.from("0");
 
 describe("Timed Mint Token", () => {
   let timedMintToken: TimedMintToken,
@@ -35,6 +36,7 @@ describe("Timed Mint Token", () => {
     timedMintToken = await new TimedMintTokenFactory(deployer).deploy(
       AMOUNT_FOR_VAULT,
       AMOUNT_FOR_AIRDROP,
+      SUPPLY_CAP,
       vaultAddress,
       timeDelay,
       mintCap,

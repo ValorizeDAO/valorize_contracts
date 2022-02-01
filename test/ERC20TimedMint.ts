@@ -9,6 +9,8 @@ import { ExposedTimedMintFactory } from "./../typechain/ExposedTimedMintFactory"
 chai.use(solidity);
 
 const { expect } = chai;
+const SUPPLY_CAP1 = ethers.BigNumber.from("100000") as BigNumber;
+const SUPPLY_CAP2 = "0";
 
 describe("ERC20TimedMint", () => {
   let exposedTimedMint: ExposedTimedMint,
@@ -21,20 +23,30 @@ describe("ERC20TimedMint", () => {
   const setupExposedTimedMint = async () => {
     [deployer, admin1, admin2, vault, ...addresses] = await ethers.getSigners();
     exposedTimedMint = await new ExposedTimedMintFactory(deployer).deploy(
+      SUPPLY_CAP1,
       "Simple Token",
       "SIMPL"
     );
     await exposedTimedMint.deployed();
   };
 
-  describe("Deployment", function () {
-    beforeEach(setupExposedTimedMint);
+  const setupExposedTimedMintAgain = async () => {
+    [deployer, admin1, admin2, vault, ...addresses] = await ethers.getSigners();
+    exposedTimedMint = await new ExposedTimedMintFactory(deployer).deploy(
+      SUPPLY_CAP2,
+      "Simple Token",
+      "SIMPL",
+    );
+    await exposedTimedMint.deployed();
+  }
+  describe("Deployment", async () => {
+    beforeEach(setupExposedTimedMint)
 
     it("should deploy", async () => {
       expect(exposedTimedMint).to.be.ok;
     });
 
-    it("should set the mintCap", async function () {
+    it("should set the mintCap", async () => {
       const cap = ethers.BigNumber.from("50000");
       const capTx = await exposedTimedMint.setMintCap(cap);
       const actualMintCap = await exposedTimedMint.mintCap();
@@ -47,9 +59,20 @@ describe("ERC20TimedMint", () => {
       var actualDelay = await exposedTimedMint.timeDelay();
       expect(actualDelay).to.equal(delay);
     });
-  });
-  describe("Timed Minting", () => {
-    beforeEach(setupExposedTimedMint);
+
+    it("should set the time until next mint", async () => {
+      const delay = ethers.BigNumber.from("1000");
+      const delayTx = await exposedTimedMint.setTimeDelay(delay);
+      const mintTime = await exposedTimedMint.setNextMintTime();
+      const delayedTUNM = await exposedTimedMint.nextAllowedMintTime();
+      await ethers.provider.send("evm_increaseTime", [100000000010])
+      await ethers.provider.send("evm_mine", [])
+      const currentTUNM = await exposedTimedMint.nextAllowedMintTime();
+      expect(delayedTUNM).to.equal(currentTUNM);
+    })
+  })
+  describe("Timed Minting", async () => {
+    beforeEach(setupExposedTimedMint)
 
     it("sets an active time delay", async () => {
       const delay = ethers.BigNumber.from("1000");
@@ -126,4 +149,43 @@ describe("ERC20TimedMint", () => {
       ).to.be.revertedWith("ERC20TimedMint: Mint exceeds maximum amount");
     });
   });
-});
+
+  describe("Set a limited supply cap", async () => {
+    beforeEach(setupExposedTimedMint)
+
+    it("should set the supply cap when not zero", async () => {
+      expect(await exposedTimedMint.supplyCap()).to.equal(SUPPLY_CAP1);
+    })
+
+    it("should mint when the supply cap is not zero", async () => { //not necessary?
+      const amt = ethers.BigNumber.from("1000");
+      const contractAddress = await exposedTimedMint.resolvedAddress;
+      const newMint = expect(await exposedTimedMint.mint(contractAddress, amt));
+      const contractBalance = await exposedTimedMint.balanceOf(contractAddress);
+      expect(amt).to.equal(contractBalance);
+    })
+
+    it("should not mint when the amount exceeds the supply cap", async () => {
+      const amt = ethers.BigNumber.from("1000000000");
+      const contractAddress = await exposedTimedMint.resolvedAddress;
+      await expect(exposedTimedMint.mint(contractAddress, amt)).to.be.revertedWith("ERC20TimedMint: cap exceeded");
+    })
+  })
+
+  describe("Set an unlimited supply cap", async () => {
+    beforeEach(setupExposedTimedMintAgain)
+
+    it("should deploy with unlimited supply when supply cap is set to zero", async () => {
+      const capUnlimited = ethers.BigNumber.from("115792089237316195423570985008687907853269984665640564039457584007913129639935");
+      expect(await exposedTimedMint.supplyCap()).to.equal(capUnlimited);
+    })
+
+    it("should always mint when the supply is unlimited", async () => {
+      const highAmt = ethers.BigNumber.from("1000000000000000000000000000000000000000000");
+      const contractAddress = await exposedTimedMint.resolvedAddress;
+      const newMint = expect(await exposedTimedMint.mint(contractAddress, highAmt));
+      const contractBalance = await exposedTimedMint.balanceOf(contractAddress);
+      expect(highAmt).to.equal(contractBalance);
+    })
+  })
+})
