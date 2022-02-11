@@ -1,9 +1,10 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.6;
 
-import "./@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./@openzeppelin/contracts/access/Ownable.sol";
-import "./curves/BondingCurve.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "../curves/BondingCurve.sol";
+
 // import "hardhat/console.sol";
 
 /**
@@ -60,7 +61,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
     }
 
     /**
-     * @dev the sell mechanism also based on Bancor sells tokens directly 
+     * @dev the sell mechanism also based on Bancor sells tokens directly
      *      to the contract which then burns them in exchange for eth.
      **/
     function sellTokensForEth(uint256 _amount) external {
@@ -80,7 +81,6 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
 
         reEntranceGuard = false;
     }
-
 
     /**
      * @dev tokens get ditributed according to the percentage defined by founderPercentage
@@ -107,26 +107,35 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         );
     }
 
-    function calculateTotalMintAmount(uint256 _deposit) internal view returns (uint256)
+    function calculateTotalMintAmount(uint256 _deposit)
+        internal
+        view
+        returns (uint256)
     {
         return
             calculatePurchaseReturn(
                 totalSupply(),
-                checkAndReturnInitialContractBalance(_deposit, address(this).balance),
+                checkAndReturnInitialContractBalance(
+                    _deposit,
+                    address(this).balance
+                ),
                 uint32(reserveRatio),
                 _deposit
             );
     }
 
-    function checkAndReturnInitialContractBalance(uint256 _amountToDeposit, uint256 balanceToCheckAgainst) internal view returns(uint256 _amountToUseAsTokenBalance){
+    function checkAndReturnInitialContractBalance(
+        uint256 _amountToDeposit,
+        uint256 balanceToCheckAgainst
+    ) internal view returns (uint256 _amountToUseAsTokenBalance) {
         _amountToUseAsTokenBalance = balanceToCheckAgainst;
-        if(_amountToUseAsTokenBalance == _amountToDeposit){
+        if (_amountToUseAsTokenBalance == _amountToDeposit) {
             // square root of initial deposit amount, this is bitwise shifted by 32
             // to define the price of the token when there is no reserve ratio to compare it to
             uint8 temp;
             uint256 tempAmount;
-            (tempAmount, temp)= power(_amountToDeposit, 1, 1, 2); 
-            _amountToUseAsTokenBalance = tempAmount >> 32 ;
+            (tempAmount, temp) = power(_amountToDeposit, 1, 1, 2);
+            _amountToUseAsTokenBalance = tempAmount >> 32;
         }
     }
 
@@ -149,10 +158,7 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         external
         onlyOwner
     {
-        require(
-            _newPercentage <= 100,
-            "percentage > 100"
-        );
+        require(_newPercentage <= 100, "percentage > 100");
         founderPercentage = _newPercentage;
     }
 
@@ -161,13 +167,15 @@ contract CreatorToken is BondingCurve, ERC20, Ownable {
         view
         returns (uint256, uint256)
     {
-        uint256 _amountToMint =
-            calculatePurchaseReturn(
-                totalSupply(),
-                checkAndReturnInitialContractBalance(_amount, (address(this).balance + _amount)), //Need to add the amount to the balance in case this is the first deposit
-                uint32(reserveRatio),
-                _amount
-            );
+        uint256 _amountToMint = calculatePurchaseReturn(
+            totalSupply(),
+            checkAndReturnInitialContractBalance(
+                _amount,
+                (address(this).balance + _amount)
+            ), //Need to add the amount to the balance in case this is the first deposit
+            uint32(reserveRatio),
+            _amount
+        );
         return splitAmountToFounderAndBuyer(_amountToMint, founderPercentage);
     }
 

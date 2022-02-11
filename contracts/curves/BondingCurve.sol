@@ -1,13 +1,14 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.6;
 import "./Power.sol";
+
 // import "hardhat/console.sol";
 
 /**
  * Bancor formula by Bancor
  * https://github.com/bancorprotocol/contracts
  * https://www.blunderingcode.com/how-bancor-works/
- * 
+ *
  * Modified by Javier Gonzalez
  */
 abstract contract BondingCurve is Power {
@@ -33,9 +34,9 @@ abstract contract BondingCurve is Power {
         // validate input
         require(
             _supply > 0 &&
-            _connectorBalance > 0 &&
-            _connectorWeight > 0 &&
-            _connectorWeight <= MAX_WEIGHT
+                _connectorBalance > 0 &&
+                _connectorWeight > 0 &&
+                _connectorWeight <= MAX_WEIGHT
         );
         // special case for 0 deposit amount
         if (_depositAmount == 0) return 0;
@@ -77,10 +78,10 @@ abstract contract BondingCurve is Power {
         // validate input
         require(
             _supply > 0 &&
-            _connectorBalance > 0 &&
-            _connectorWeight > 0 &&
-            _connectorWeight <= MAX_WEIGHT &&
-            _sellAmount <= _supply
+                _connectorBalance > 0 &&
+                _connectorWeight > 0 &&
+                _connectorWeight <= MAX_WEIGHT &&
+                _sellAmount <= _supply
         );
         // special case for 0 sell amount
         if (_sellAmount == 0) return 0;
@@ -90,7 +91,7 @@ abstract contract BondingCurve is Power {
 
         // special case if the weight = 100%
         if (_connectorWeight == MAX_WEIGHT)
-            return (_connectorBalance *_sellAmount) / _supply;
+            return (_connectorBalance * _sellAmount) / _supply;
 
         uint256 result;
         uint8 precision;
