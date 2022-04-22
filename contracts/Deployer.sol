@@ -46,8 +46,11 @@ contract Deployer is AccessControl{
             msg.value >= contractDeployPrice,
             "Insufficient payment to deploy"
         );
-        if(salt == 0) salt = keccak256(abi.encode(getChildren(msg.sender).length));
-        bytes memory bytecode = getContractByteCode(contractType);
+        if(salt == 0) salt = keccak256(abi.encode(getDeployed(msg.sender).length));
+        bytes memory bytecode = abi.encodePacked(
+            getContractByteCode(contractType), 
+            abi.encode(_freeSupply, _airdropSupply, vault, name, symbol, admins)
+        );
         address c;
         assembly {
             c := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
@@ -61,7 +64,7 @@ contract Deployer is AccessControl{
      * @param deployer address to lookup
      * @return array of contracts deployed by deployer
      */
-    function getChildren(address deployer)
+    function getDeployed(address deployer)
         public
         view
         returns (ContractInfo[] memory contractsDeployed)
