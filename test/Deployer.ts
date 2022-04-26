@@ -6,6 +6,7 @@ import { BigNumber, Contract, Signer } from "ethers";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { SimpleTokenFactory } from "../typechain/SimpleTokenFactory"
+import { TimedMintTokenFactory } from '../typechain/TimedMintTokenFactory';
 
 chai.use(solidity);
 
@@ -53,8 +54,8 @@ describe.only("Deployer", () => {
     let simpleTokenParams: string;
     beforeEach(async () => {
       await setupDeployer()
-      const data = contractByteCode.simpleToken
-      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data);
+      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", contractByteCode.simpleToken);
+      await deployerContract.connect(admin).setContractByteCode("timedMint_token_v0.1.0", contractByteCode.timedMintToken);
       const encoder =  new ethers.utils.AbiCoder()
       simpleTokenParams = encoder.encode(
         [ "uint", "uint", "address", "string", "string", "address[]" ],
@@ -108,6 +109,33 @@ describe.only("Deployer", () => {
       expect(await simpleToken.name()).to.equal("test")
       expect(await simpleToken.symbol()).to.equal("TST")
       expect(await simpleToken.totalSupply()).to.equal(BigNumber.from("2000000000000000000000000"))
+    })
+    it("should deploy a timed mint token if the bytecode uploaded is correct", async () =>{
+      const encoder =  new ethers.utils.AbiCoder()
+      const timedMintTokenParams = encoder.encode(
+        [ "uint", "uint", "uint", "address", "uint", "uint", "string", "string", "address[]" ],
+        [
+          BigNumber.from("1000000000000000000000000"),
+          BigNumber.from("1000000000000000000000000"),
+          BigNumber.from("2000000000000000000000000"),
+          await deployerAddress.getAddress(),
+          BigNumber.from("10000000"),
+          BigNumber.from("1000000000000000000000000"),
+          "test",
+          "TST",
+          [await addresses[0].getAddress()]
+        ]);
+      await deployerContract.connect(await addresses[0]).deployContract(
+        "timedMint_token_v0.1.0",
+        contractByteCode.timedMintToken,
+        timedMintTokenParams,
+        ethers.utils.hexZeroPad([0], 32),
+        { value: INITIAL_DEPLOY_PRICE }
+      )
+      const deployed = await deployerContract.getDeployed(await addresses[0].getAddress())
+      const timedMintToken = TimedMintTokenFactory.connect(deployed[0].deploymentAddress, addresses[0])
+      expect(await timedMintToken.name()).to.equal("test")
+      expect(await timedMintToken.minter()).to.equal("0x0000000000000000000000000000000000000000")
     })
     it("should revert if no contract bytecode exist given a name", async () =>{
       await expect(
