@@ -11,7 +11,7 @@ contract Deployer is AccessControl{
         address deploymentAddress;
         string contractType;
     }
-    mapping(string => bytes) contractByteCodesByKey;
+    mapping(string => bytes32) contractByteCodesByKey;
     mapping(address => ContractInfo[]) contractsDeloyedByEOA;
     uint256 public contractDeployPrice;
     uint256 discountPercentage;
@@ -33,15 +33,11 @@ contract Deployer is AccessControl{
      * @param contractKey The key to get the bytecode of the contract
      * @param salt A parameter to make the contract deploy unique
      */
-    function deploySimpleTokenContract(
-        string calldata contractType, 
-        bytes32 salt,
-        uint256 _freeSupply,
-        uint256 _airdropSupply,
-        address vault,
-        string memory name,
-        string memory symbol,
-        address[] memory admins
+    function deployContract(
+        string calldata contractType,
+        bytes calldata bytecode,
+        bytes calldata params,
+        bytes32 salt
     ) public payable {
         require(
             msg.value >= contractDeployPrice,
@@ -50,13 +46,13 @@ contract Deployer is AccessControl{
         if(salt == 0x0) {
             salt = keccak256(abi.encode(getDeployed(msg.sender).length));
         }
-        (bool success, bytes memory bytecode) = getContractByteCode(contractType);
-        if (!success) {
+        (bool success, bytes32 hash) = getContractByteCodeHash(contractType);
+        if (!success || hash != keccak256(bytecode)) {
             revert("Incorrect contract name");
         }
         bytes memory code = abi.encodePacked(
             bytecode,
-            abi.encode(_freeSupply, _airdropSupply, vault, name, symbol, admins)
+            params
         );
         address c;
         assembly {
@@ -95,17 +91,17 @@ contract Deployer is AccessControl{
      * @param contractKey The key used to reference the contract
      * @returns Boolean flag and the bytecode of the contract
      */
-    function getContractByteCode(string calldata contractKey)
+    function getContractByteCodeHash(string calldata contractKey)
         public
         view
-        returns (bool success, bytes memory bytecode)
+        returns (bool success, bytes32 hash)
     {
-        bytecode = contractByteCodesByKey[contractKey];
+        hash = contractByteCodesByKey[contractKey];
 
-        if(bytecode.length == 0) {
-            return (false, bytecode);
+        if(hash.length == 0) {
+            return (false, hash);
         }
-        return (true, bytecode);
+        return (true, hash);
     }
 
     /*
@@ -117,7 +113,7 @@ contract Deployer is AccessControl{
         string calldata contractKey,
         bytes calldata byteCode
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        contractByteCodesByKey[contractKey] = byteCode;
+        contractByteCodesByKey[contractKey] = keccak256(byteCode);
     }
 
     function withdraw() external onlyRole(DEFAULT_ADMIN_ROLE) {
