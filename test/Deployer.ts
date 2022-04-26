@@ -5,7 +5,6 @@ import { ethers } from "hardhat"
 import { BigNumber, Contract, Signer } from "ethers";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
-import { getAddress } from "@ethersproject/address";
 import { SimpleTokenFactory } from "../typechain/SimpleTokenFactory"
 
 chai.use(solidity);
@@ -90,14 +89,14 @@ describe.only("Deployer", () => {
       expect(tx.confirmations).to.equal(1)
     })
     it("should deploy a simple token if the bytecode uploaded is correct", async () =>{
-      const tx = await deployerContract.connect(await addresses[0]).deployContract(
+      await deployerContract.connect(await addresses[0]).deployContract(
         "simple_token_v0.1.0", 
         contractByteCode.simpleToken,
         simpleTokenParams,
         ethers.utils.hexZeroPad([0], 32), 
         { value: INITIAL_DEPLOY_PRICE }
       )
-      const tx2 = await deployerContract.connect(await addresses[0]).deployContract(
+      await deployerContract.connect(await addresses[0]).deployContract(
         "simple_token_v0.1.0", 
         contractByteCode.simpleToken,
         simpleTokenParams,
