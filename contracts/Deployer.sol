@@ -4,6 +4,7 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "hardhat/console.sol";
 
 contract Deployer is AccessControl{
     struct ContractInfo {
@@ -46,16 +47,25 @@ contract Deployer is AccessControl{
             msg.value >= contractDeployPrice,
             "Insufficient payment to deploy"
         );
-        if(salt == 0) salt = keccak256(abi.encode(getDeployed(msg.sender).length));
-        bytes memory bytecode = abi.encodePacked(
-            getContractByteCode(contractType), 
+        if(salt == 0x0) {
+            salt = keccak256(abi.encode(getDeployed(msg.sender).length));
+        }
+        (bool success, bytes memory bytecode) = getContractByteCode(contractType);
+        if (!success) {
+            revert("Incorrect contract name");
+        }
+        bytes memory code = abi.encodePacked(
+            bytecode,
             abi.encode(_freeSupply, _airdropSupply, vault, name, symbol, admins)
         );
         address c;
         assembly {
-            c := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
+            c := create2(0, add(code, 0x20), mload(code), salt)
+            if iszero(extcodesize(c)) {
+                revert(0, "Error deploying contract")
+            }
         }
-        ContractInfo memory ci = ContractInfo(msg.sender, contractType);
+        ContractInfo memory ci = ContractInfo(c, contractType);
         contractsDeloyedByEOA[msg.sender].push(ci);
     }
 
@@ -83,13 +93,19 @@ contract Deployer is AccessControl{
     /*
      * @dev Gets the bytecode of a contract by name
      * @param contractKey The key used to reference the contract
+     * @returns Boolean flag and the bytecode of the contract
      */
     function getContractByteCode(string calldata contractKey)
         public
         view
-        returns (bytes memory)
+        returns (bool success, bytes memory bytecode)
     {
-        return contractByteCodesByKey[contractKey];
+        bytecode = contractByteCodesByKey[contractKey];
+
+        if(bytecode.length == 0) {
+            return (false, bytecode);
+        }
+        return (true, bytecode);
     }
 
     /*

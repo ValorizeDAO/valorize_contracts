@@ -42,7 +42,7 @@ describe.only("Deployer", () => {
       const data = contractByteCode.simpleToken
       await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data);
       const givenBytecode = await deployerContract.connect(admin).getContractByteCode("simple_token_v0.1.0");
-      expect(data).to.equal(givenBytecode)
+      expect(data).to.equal(givenBytecode.bytecode)
     });
     it("should reject non admins to upload the contract bytecode", async () => {
       const data = contractByteCode.simpleToken
@@ -54,11 +54,13 @@ describe.only("Deployer", () => {
   })
   describe("Deployment", async () => {
     beforeEach(async () => {
-      setupDeployer()
+      await setupDeployer()
       const data = contractByteCode.simpleToken
       await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data);
     })
     it("should require payment to deploy the contract bytecode", async () => {
+      const data = contractByteCode.simpleToken
+      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data);
       const padded = ethers.utils.hexZeroPad([0], 32)
       await expect(
         deployerContract.deploySimpleTokenContract(
@@ -97,12 +99,37 @@ describe.only("Deployer", () => {
         [await addresses[0].getAddress()],
         { value: INITIAL_DEPLOY_PRICE }
      )
-     const deployed = await deployerContract.getDeployed(await addresses[0].getAddress())
-     const simpleToken = SimpleTokenFactory.connect(deployed[0].deploymentAddress, addresses[0])
-     expect(await simpleToken.name()).to.equal("test")
-     expect(await simpleToken.symbol()).to.equal("TST")
-     expect(await simpleToken.totalSupply()).to.equal(BigNumber.from("2000000000000000000000000"))
-     console.log(deployed[0].deploymentAddress)
+      const tx2 = await deployerContract.connect(await addresses[0]).deploySimpleTokenContract(
+        "simple_token_v0.1.0", 
+        ethers.utils.hexZeroPad([0], 32), 
+        BigNumber.from("1000000000000000000000000"),
+        BigNumber.from("1000000000000000000000000"),
+        await deployerAddress.getAddress(),
+        "test",
+        "TST",
+        [await addresses[0].getAddress()],
+        { value: INITIAL_DEPLOY_PRICE }
+      )
+      const deployed = await deployerContract.getDeployed(await addresses[0].getAddress())
+      const simpleToken = SimpleTokenFactory.connect(deployed[0].deploymentAddress, addresses[0])
+      expect(await simpleToken.name()).to.equal("test")
+      expect(await simpleToken.symbol()).to.equal("TST")
+      expect(await simpleToken.totalSupply()).to.equal(BigNumber.from("2000000000000000000000000"))
+    })
+    it("should revert if no contract bytecode exist given a name", async () =>{
+      await expect(
+        deployerContract.deploySimpleTokenContract(
+          "simple_token_v2.1.0", 
+          ethers.utils.hexZeroPad([0], 32), 
+          BigNumber.from("1000000000000000000000000"),
+          BigNumber.from("1000000000000000000000000"),
+          await deployerAddress.getAddress(),
+          "test",
+          "TST",
+          [await addresses[0].getAddress()],
+          { value: INITIAL_DEPLOY_PRICE }
+        )
+      ).to.be.revertedWith("Incorrect contract name")
     })
   })
 })
