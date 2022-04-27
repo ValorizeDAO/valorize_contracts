@@ -7,6 +7,7 @@ import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { SimpleTokenFactory } from "../typechain/SimpleTokenFactory"
 import { TimedMintTokenFactory } from '../typechain/TimedMintTokenFactory';
+import { randomBytes } from 'ethers/lib/utils';
 
 chai.use(solidity);
 
@@ -21,7 +22,6 @@ describe.only("Deployer", () => {
   const setupDeployer = async () => {
     [deployerAddress, admin, ...addresses] = await ethers.getSigners();
     deployerContract = await new DeployerFactory(deployerAddress).deploy(
-      INITIAL_DEPLOY_PRICE,
       await admin.getAddress(),
     );
     await deployerContract.deployed();
@@ -38,15 +38,15 @@ describe.only("Deployer", () => {
     beforeEach(setupDeployer)
     it("should allow admin to upload the contract bytecode", async () => {
       const data = contractByteCode.simpleToken
-      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data);
-      const givenBytecode = await deployerContract.connect(admin).getContractByteCodeHash("simple_token_v0.1.0");
-      expect(ethers.utils.solidityKeccak256(["bytes"], [data])).to.equal(givenBytecode.hash)
+      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data, INITIAL_DEPLOY_PRICE);
+      const { success, contractParams } = await deployerContract.connect(admin).getContractByteCodeHash("simple_token_v0.1.0");
+      expect(ethers.utils.solidityKeccak256(["bytes"], [data])).to.equal(contractParams.byteCodeHash)
     });
     it("should reject non admins to upload the contract bytecode", async () => {
       const data = contractByteCode.simpleToken
       const address = await (await addresses[0].getAddress()).toLowerCase()
       await expect(
-        deployerContract.connect(addresses[0]).setContractByteCode("test_contract_1", data)
+        deployerContract.connect(addresses[0]).setContractByteCode("test_contract_1", data, INITIAL_DEPLOY_PRICE)
       ).to.be.revertedWith("AccessControl: account " + address + " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
     });
   })
@@ -54,8 +54,8 @@ describe.only("Deployer", () => {
     let simpleTokenParams: string;
     beforeEach(async () => {
       await setupDeployer()
-      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", contractByteCode.simpleToken);
-      await deployerContract.connect(admin).setContractByteCode("timedMint_token_v0.1.0", contractByteCode.timedMintToken);
+      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", contractByteCode.simpleToken, INITIAL_DEPLOY_PRICE);
+      await deployerContract.connect(admin).setContractByteCode("timedMint_token_v0.1.0", contractByteCode.timedMintToken, INITIAL_DEPLOY_PRICE);
       const encoder =  new ethers.utils.AbiCoder()
       simpleTokenParams = encoder.encode(
         [ "uint", "uint", "address", "string", "string", "address[]" ],
@@ -70,13 +70,13 @@ describe.only("Deployer", () => {
     })
     it("should require payment to deploy the contract bytecode", async () => {
       const data = contractByteCode.simpleToken
-      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data);
+      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data, INITIAL_DEPLOY_PRICE);
       await expect(
         deployerContract.deployContract(
           "simple_token_v0.1.0", 
           contractByteCode.simpleToken,
           simpleTokenParams,
-          ethers.utils.hexZeroPad([0], 32), 
+          ethers.utils.hexZeroPad(randomBytes(32), 32), 
           { value: INITIAL_DEPLOY_PRICE.sub(BigNumber.from("1")) }
         )
       ).to.be.revertedWith("Insufficient payment to deploy")
@@ -84,7 +84,7 @@ describe.only("Deployer", () => {
         "simple_token_v0.1.0", 
         contractByteCode.simpleToken,
         simpleTokenParams,
-        ethers.utils.hexZeroPad([0], 32), 
+        ethers.utils.hexZeroPad(randomBytes(32), 32), 
         { value: INITIAL_DEPLOY_PRICE }
        )
       expect(tx.confirmations).to.equal(1)
@@ -94,14 +94,14 @@ describe.only("Deployer", () => {
         "simple_token_v0.1.0", 
         contractByteCode.simpleToken,
         simpleTokenParams,
-        ethers.utils.hexZeroPad([0], 32), 
+        ethers.utils.hexZeroPad(randomBytes(32), 32), 
         { value: INITIAL_DEPLOY_PRICE }
       )
       await deployerContract.connect(await addresses[0]).deployContract(
         "simple_token_v0.1.0", 
         contractByteCode.simpleToken,
         simpleTokenParams,
-        ethers.utils.hexZeroPad([0], 32), 
+        ethers.utils.hexZeroPad(randomBytes(32), 32), 
         { value: INITIAL_DEPLOY_PRICE }
       )
       const deployed = await deployerContract.getDeployed(await addresses[0].getAddress())
@@ -129,7 +129,7 @@ describe.only("Deployer", () => {
         "timedMint_token_v0.1.0",
         contractByteCode.timedMintToken,
         timedMintTokenParams,
-        ethers.utils.hexZeroPad([0], 32),
+        ethers.utils.hexZeroPad(randomBytes(32), 32),
         { value: INITIAL_DEPLOY_PRICE }
       )
       const deployed = await deployerContract.getDeployed(await addresses[0].getAddress())
@@ -143,7 +143,7 @@ describe.only("Deployer", () => {
           "simple_token_v2.1.0", 
           contractByteCode.simpleToken,
           simpleTokenParams,
-          ethers.utils.hexZeroPad([0], 32), 
+          ethers.utils.hexZeroPad(randomBytes(32), 32), 
           { value: INITIAL_DEPLOY_PRICE }
         )
       ).to.be.revertedWith("Incorrect contract name")
