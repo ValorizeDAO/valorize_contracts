@@ -32,8 +32,11 @@ contract Deployer is AccessControl{
 
     /*
      * @dev Deploys a contract and returns the address of the deployed contract
-     * @param contractKey The key to get the bytecode of the contract
-     * @param salt A parameter to make the contract deploy unique
+     * @param contractType The key to get the bytecode of the contract
+     * @param bytecode     The bytecode of the contract to deploy
+     * @param params       Bytecode of the constructor parameters (if any) of the contract to deploy
+     * @param salt         Salt to be used to generate the hash of the contract bytecode 
+     *                     (used to generate a deterministic address)
      */
     function deployContract(
         string calldata contractType,
@@ -83,7 +86,7 @@ contract Deployer is AccessControl{
     /*
      * @dev Gets the bytecode of a contract by name
      * @param contractKey The key used to reference the contract
-     * @returns Boolean flag and the contract info
+     * @returns boolean flag and the contract info
      */
     function getContractByteCodeHash(string calldata contractKey)
         public
@@ -101,7 +104,7 @@ contract Deployer is AccessControl{
      * @dev Sets the bytecode of a contract by name
      * @param contractKey The key which must be used to access the bytecode
      * @param bytecode The bytecode to store
-     * @param uint contractDeployPrice The price (in wei) that users must pay to deploy a contract
+     * @param contractDeployPrice The price (in wei) that users must pay to deploy a contract
      */
     function setContractByteCode(
         string calldata contractKey,
