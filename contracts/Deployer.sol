@@ -56,11 +56,10 @@ contract Deployer is AccessControl{
             bytecode,
             params
         );
-        console.logBytes32(salt);
         address contractAddress;
         assembly {
             contractAddress := create2(0, add(code, 0x20), mload(code), salt)
-            if iszero(extcodesize(c)) {
+            if iszero(extcodesize(contractAddress)) {
                 revert(0, "Error deploying contract")
             }
         }
