@@ -17,8 +17,6 @@ contract Deployer is AccessControl{
     }
     mapping(string => ContractDeployParameters) contractParamsByKey;
     mapping(address => DeployedContractInfo[])  contractsDeloyedByEOA;
-    uint256 discountPercentage;
-    address NFTDiscountContract;
 
     /*
      * @dev Deploys a contract and returns the address of the deployed contract
