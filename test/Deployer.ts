@@ -13,7 +13,7 @@ chai.use(solidity);
 
 const { expect } = chai;
 const INITIAL_DEPLOY_PRICE = BigNumber.from("1000000000000000000");
-describe.only("Deployer", () => {
+describe("Deployer", () => {
   let deployerContract: Deployer,
     deployerAddress: Signer,
     admin: Signer,
@@ -49,8 +49,25 @@ describe.only("Deployer", () => {
         deployerContract.connect(addresses[0]).setContractByteCode("test_contract_1", data, INITIAL_DEPLOY_PRICE)
       ).to.be.revertedWith("AccessControl: account " + address + " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
     });
+    it("should fail if admin tries to create a contract with an existing name", async () => {
+      const data = contractByteCode.simpleToken
+      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data, INITIAL_DEPLOY_PRICE);
+      await expect(
+        deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data, INITIAL_DEPLOY_PRICE)
+      ).to.be.revertedWith("Contract already deployed");
+    })
+    it("should emit a 'ByteCodeUploaded' event when a new contract is uploaded", async () => {
+      const data = contractByteCode.simpleToken
+      await expect(deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data, INITIAL_DEPLOY_PRICE))
+        .to.emit(deployerContract, "ByteCodeUploaded")
+        .withArgs(
+          "simple_token_v0.1.0",
+          INITIAL_DEPLOY_PRICE,
+          ethers.utils.solidityKeccak256(["bytes"], [data]),
+        );
+    })
   })
-  describe("Deployment", async () => {
+  describe("Factory", async () => {
     let simpleTokenParams: string;
     beforeEach(async () => {
       await setupDeployer()
@@ -69,8 +86,6 @@ describe.only("Deployer", () => {
         ]);
     })
     it("should require payment to deploy the contract bytecode", async () => {
-      const data = contractByteCode.simpleToken
-      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", data, INITIAL_DEPLOY_PRICE);
       await expect(
         deployerContract.deployContract(
           "simple_token_v0.1.0", 
@@ -146,7 +161,18 @@ describe.only("Deployer", () => {
           ethers.utils.hexZeroPad(randomBytes(32), 32), 
           { value: INITIAL_DEPLOY_PRICE }
         )
-      ).to.be.revertedWith("Incorrect contract name")
+      ).to.be.revertedWith("Contract is unregistered or discontinued")
+    })
+    it("should revert if the contract bytecode is incorrect", async () =>{
+      await expect(
+        deployerContract.deployContract(
+          "simple_token_v0.1.0", 
+          contractByteCode.simpleToken + "10",
+          simpleTokenParams,
+          ethers.utils.hexZeroPad(randomBytes(32), 32), 
+          { value: INITIAL_DEPLOY_PRICE }
+        )
+      ).to.be.revertedWith("Contract is unregistered or discontinued")
     })
     it("should deploy a contract to a deterministic address", async () =>{
       const creatorAddress:string = deployerContract.address
@@ -168,6 +194,124 @@ describe.only("Deployer", () => {
       const deployed = await deployerContract.getDeployed(await addresses[3].getAddress())
       await expect(deployed[0].deploymentAddress.toLowerCase()).to.equal(contractAddress)
     })
+    it("should emit a 'ContractDeployed' event when a contract is deployed", async () => {
+      const salt = ethers.utils.hexZeroPad("0x1", 32)
+      const contractAddress = computeCreate2Address(
+        deployerContract.address,
+        salt,
+        contractByteCode.simpleToken,
+        simpleTokenParams
+      )
+      await expect(deployerContract.connect(addresses[3]).deployContract(
+        "simple_token_v0.1.0",
+        contractByteCode.simpleToken,
+        simpleTokenParams,
+        ethers.utils.hexZeroPad("0x1", 32),
+        { value: INITIAL_DEPLOY_PRICE }
+      ))
+      .to.emit(deployerContract, "ContractDeployed")
+    })
+  })
+  describe("Upgrade", () => {
+    let simpleTokenParams: string;
+    beforeEach(async () => {
+      await setupDeployer()
+      await deployerContract.connect(admin).setContractByteCode("simple_token_v0.1.0", contractByteCode.simpleToken, INITIAL_DEPLOY_PRICE);
+      await deployerContract.connect(admin).setContractByteCode("timedMint_token_v0.1.0", contractByteCode.timedMintToken, INITIAL_DEPLOY_PRICE);
+      const encoder =  new ethers.utils.AbiCoder()
+      simpleTokenParams = encoder.encode(
+        [ "uint", "uint", "address", "string", "string", "address[]" ],
+        [
+          BigNumber.from("1000000000000000000000000"),
+          BigNumber.from("1000000000000000000000000"),
+          await deployerAddress.getAddress(),
+          "test",
+          "TST",
+          [await addresses[0].getAddress()]
+        ]);
+    })
+    it("should not allow user to update if the contract is not deployed", async () => {
+      await expect(deployerContract.connect(admin).updateContractPrice(
+        "simple_token_v2.1.0",
+        BigNumber.from("100000000000000000000000000000"),
+      )).to.be.revertedWith("Contract not registered")
+    })
+    it("should allow an admin to update the price of a contract", async () => {
+      await deployerContract.connect(admin).deployContract(
+        "simple_token_v0.1.0",
+        contractByteCode.simpleToken,
+        simpleTokenParams,
+        ethers.utils.hexZeroPad(randomBytes(32), 32),
+        { value: INITIAL_DEPLOY_PRICE }
+      )
+      await deployerContract.connect(admin).updateContractPrice(
+        "simple_token_v0.1.0",
+        INITIAL_DEPLOY_PRICE.add(BigNumber.from("1")),
+      )
+      await expect(
+        deployerContract.deployContract(
+          "simple_token_v0.1.0", 
+          contractByteCode.simpleToken,
+          simpleTokenParams,
+          ethers.utils.hexZeroPad(randomBytes(32), 32), 
+          { value: INITIAL_DEPLOY_PRICE }
+        )
+      ).to.be.revertedWith("Insufficient payment to deploy")
+    })
+    it("should deny non admin to update the price of a contract", async () => {
+      await expect(
+        deployerContract.connect(addresses[0]).updateContractPrice(
+          "simple_token_v0.1.0",
+          INITIAL_DEPLOY_PRICE.add(BigNumber.from("1")),
+        )
+      ).to.be.revertedWith("AccessControl: account " 
+        + (await addresses[0].getAddress()).toLowerCase()
+        + " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+    })
+    it("should emit a 'PriceUpdated' event when a contract price is updated", async () => {
+      await expect(
+        deployerContract.connect(admin).updateContractPrice(
+          "simple_token_v0.1.0",
+          INITIAL_DEPLOY_PRICE.add(BigNumber.from("1")),
+        )
+      ).to.emit(deployerContract, "PriceUpdated")
+      .withArgs("simple_token_v0.1.0", INITIAL_DEPLOY_PRICE.add(BigNumber.from("1")))
+    })
+    it("should allow admin to make a contract undeployable in case a vulnerability is found", async () => { //in case a vulnerability is found
+      const tx = await deployerContract.deployContract(
+        "simple_token_v0.1.0", 
+        contractByteCode.simpleToken,
+        simpleTokenParams,
+        ethers.utils.hexZeroPad(randomBytes(32), 32), 
+        { value: INITIAL_DEPLOY_PRICE }
+       )
+      expect(tx.confirmations).to.equal(1)
+
+      await deployerContract.connect(admin).discontinueContract("simple_token_v0.1.0");
+
+      await expect(
+        deployerContract.connect(admin).deployContract(
+          "simple_token_v0.1.0",
+          contractByteCode.simpleToken,
+          simpleTokenParams,
+          ethers.utils.hexZeroPad(randomBytes(32), 32),
+          { value: INITIAL_DEPLOY_PRICE }
+        )
+      ).to.be.revertedWith("Contract is unregistered or discontinued");
+    })
+    it("should emit an event when a contract is made undeployable", async () => {
+      await deployerContract.deployContract(
+        "simple_token_v0.1.0", 
+        contractByteCode.simpleToken,
+        simpleTokenParams,
+        ethers.utils.hexZeroPad(randomBytes(32), 32), 
+        { value: INITIAL_DEPLOY_PRICE }
+       )
+      await expect(
+        deployerContract.connect(admin).discontinueContract("simple_token_v0.1.0")
+      ).to.emit(deployerContract, "ContractDiscontinued")
+      .withArgs("simple_token_v0.1.0")
+    })
   })
 })
 function computeCreate2Address(creatorAddress: string, saltHex: string, byteCode: string, paramsHexString: string): string {
@@ -176,5 +320,5 @@ function computeCreate2Address(creatorAddress: string, saltHex: string, byteCode
     "ff", creatorAddress, saltHex, byteCodeHash
   ].map(x => { return x.replace(/0x/, "") }).join("")
   return `0x${ethers.utils.solidityKeccak256([ "bytes" ], [ "0x" + hexString ])
-    .slice(-40)}`.toLowerCase();
+    .slice(-40)}`;
 }

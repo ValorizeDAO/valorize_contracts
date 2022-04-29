@@ -18,9 +18,13 @@ contract Deployer is AccessControl{
     mapping(string => ContractDeployParameters) contractParamsByKey;
     mapping(address => DeployedContractInfo[])  contractsDeloyedByEOA;
 
+    event ByteCodeUploaded(string key, uint price, bytes32 byteCodeHash);
+    event PriceUpdated(string key, uint newPrice);
+    event ContractDiscontinued(string key);
+    event ContractDeployed(address contractAddress, string contractType, uint paid);
+
     /*
      * @dev Deploys a contract and returns the address of the deployed contract
-     * @param _contractDeployPrice The price (in wei) that users must pay to deploy a contract
      * @param _admin The address that can call the admin functions
      * @return The address of the deployed contract
      */
@@ -44,7 +48,7 @@ contract Deployer is AccessControl{
     ) public payable {
         (bool success, ContractDeployParameters memory c) = getContractByteCodeHash(contractType);
         if (!success || c.byteCodeHash != keccak256(bytecode)) {
-            revert("Incorrect contract name");
+            revert("Contract is unregistered or discontinued");
         }
         require(
             msg.value >= c.price,
@@ -66,6 +70,7 @@ contract Deployer is AccessControl{
         }
         DeployedContractInfo memory ci = DeployedContractInfo(contractAddress, contractType);
         contractsDeloyedByEOA[msg.sender].push(ci);
+        emit ContractDeployed(contractAddress, contractType, msg.value);
     }
 
     /*
@@ -109,11 +114,48 @@ contract Deployer is AccessControl{
         bytes calldata byteCode,
         uint contractDeployPrice
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        contractParamsByKey[contractKey] = ContractDeployParameters(
-            keccak256(byteCode),
-            contractDeployPrice
-        );
+        if (contractParamsByKey[contractKey].byteCodeHash == 0x0) {
+            contractParamsByKey[contractKey] = ContractDeployParameters(keccak256(byteCode), contractDeployPrice);
+            emit ByteCodeUploaded(contractKey, contractDeployPrice, keccak256(byteCode));
+        } else {
+            revert("Contract already deployed");
+        }
     }
+
+    /*
+     * @dev Updates the price of a contract
+     * @param contractKey The key used to reference the contract
+     * @param newPrice The new price (in wei) that users must pay to deploy the contract
+     */
+    function updateContractPrice(
+        string calldata contractKey,
+        uint newPrice
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        ContractDeployParameters memory contractParams = contractParamsByKey[contractKey];
+        if (contractParams.byteCodeHash != 0x0) {
+            contractParamsByKey[contractKey] = ContractDeployParameters(contractParams.byteCodeHash, newPrice);
+            emit PriceUpdated(contractKey, newPrice);
+        } else {
+            revert("Contract not registered");
+        }
+    }
+
+    /*
+     * @dev Makes a contract undeployable
+     * @param contractKey The key used to reference the contract
+     */
+    function discontinueContract(
+        string calldata contractKey
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        ContractDeployParameters memory contractParams = contractParamsByKey[contractKey];
+        if (contractParams.byteCodeHash != 0x0) {
+            contractParamsByKey[contractKey] = ContractDeployParameters(0x0, 0x0);
+            emit ContractDiscontinued(contractKey);
+        } else {
+            revert("Contract not registered");
+        }
+    }
+
 
     function withdraw() external onlyRole(DEFAULT_ADMIN_ROLE) {
         payable(address(msg.sender)).transfer(address(this).balance);
