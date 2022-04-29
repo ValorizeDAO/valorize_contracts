@@ -212,7 +212,7 @@ describe("Deployer", () => {
       .to.emit(deployerContract, "ContractDeployed")
     })
   })
-  describe("Upgrade", () => {
+  describe("Update Contracts", () => {
     let simpleTokenParams: string;
     beforeEach(async () => {
       await setupDeployer()
