@@ -4,56 +4,73 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "hardhat/console.sol";
 
 contract Deployer is AccessControl{
-    struct ContractInfo {
+    struct DeployedContractInfo {
         address deploymentAddress;
-        string contractType;
+        string  contractType;
     }
-    mapping(string => bytes) contractByteCodesByKey;
-    mapping(address => ContractInfo[]) contractsDeloyedByEOA;
-    uint256 public contractDeployPrice;
-    uint256 discountPercentage;
-    address NFTDiscountContract;
+    struct ContractDeployParameters {
+        bytes32 byteCodeHash;
+        uint    price;
+    }
+    mapping(string => ContractDeployParameters) contractParamsByKey;
+    mapping(address => DeployedContractInfo[])  contractsDeloyedByEOA;
+
+    event ByteCodeUploaded(string key, uint price, bytes32 byteCodeHash);
+    event PriceUpdated(string key, uint newPrice);
+    event ContractDiscontinued(string key);
+    event ContractDeployed(address contractAddress, string contractType, uint paid);
 
     /*
      * @dev Deploys a contract and returns the address of the deployed contract
-     * @param _contractDeployPrice The price (in wei) that users must pay to deploy a contract
      * @param _admin The address that can call the admin functions
      * @return The address of the deployed contract
      */
-    constructor(uint256 _contractDeployPrice, address admin) {
-        contractDeployPrice = _contractDeployPrice;
+    constructor(address admin) {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     /*
      * @dev Deploys a contract and returns the address of the deployed contract
-     * @param contractKey The key to get the bytecode of the contract
-     * @param salt A parameter to make the contract deploy unique
+     * @param contractType The key to get the bytecode of the contract
+     * @param bytecode     The bytecode of the contract to deploy
+     * @param params       Bytecode of the constructor parameters (if any) of the contract to deploy
+     * @param salt         Salt to be used to generate the hash of the contract bytecode 
+     *                     (used to generate a deterministic address)
      */
-    function deploySimpleTokenContract(
-        string calldata contractType, 
-        bytes32 salt,
-        uint256 _freeSupply,
-        uint256 _airdropSupply,
-        address vault,
-        string memory name,
-        string memory symbol,
-        address[] memory admins
+    function deployContract(
+        string calldata contractType,
+        bytes calldata bytecode,
+        bytes calldata params,
+        bytes32 salt
     ) public payable {
+        (bool success, ContractDeployParameters memory c) = getContractByteCodeHash(contractType);
+        if (!success || c.byteCodeHash != keccak256(bytecode)) {
+            revert("Contract is unregistered or discontinued");
+        }
         require(
-            msg.value >= contractDeployPrice,
+            msg.value >= c.price,
             "Insufficient payment to deploy"
         );
-        if(salt == 0) salt = keccak256(abi.encode(getChildren(msg.sender).length));
-        bytes memory bytecode = getContractByteCode(contractType);
-        address c;
-        assembly {
-            c := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
+        if(salt == 0x0) {
+            salt = keccak256(abi.encode(getDeployed(msg.sender).length));
         }
-        ContractInfo memory ci = ContractInfo(msg.sender, contractType);
+        bytes memory code = abi.encodePacked(
+            bytecode,
+            params
+        );
+        address contractAddress;
+        assembly {
+            contractAddress := create2(0, add(code, 0x20), mload(code), salt)
+            if iszero(extcodesize(contractAddress)) {
+                revert(0, "Error deploying contract")
+            }
+        }
+        DeployedContractInfo memory ci = DeployedContractInfo(contractAddress, contractType);
         contractsDeloyedByEOA[msg.sender].push(ci);
+        emit ContractDeployed(contractAddress, contractType, msg.value);
     }
 
     /*
@@ -61,45 +78,84 @@ contract Deployer is AccessControl{
      * @param deployer address to lookup
      * @return array of contracts deployed by deployer
      */
-    function getChildren(address deployer)
+    function getDeployed(address deployer)
         public
         view
-        returns (ContractInfo[] memory contractsDeployed)
+        returns (DeployedContractInfo[] memory contractsDeployed)
     {
         contractsDeployed = contractsDeloyedByEOA[deployer];
     }
 
     /*
-     * @dev Sets the price to deploy a contract
-     * @param newPrice The new price (in wei)
-     */
-    function setContractDeployPrice(uint256 newPrice) external {
-        contractDeployPrice = newPrice;
-    }
-
-    /*
      * @dev Gets the bytecode of a contract by name
      * @param contractKey The key used to reference the contract
+     * @returns boolean flag and the contract info
      */
-    function getContractByteCode(string calldata contractKey)
+    function getContractByteCodeHash(string calldata contractKey)
         public
         view
-        returns (bytes memory)
+        returns (bool success, ContractDeployParameters memory contractParams)
     {
-        return contractByteCodesByKey[contractKey];
+        contractParams = contractParamsByKey[contractKey];
+        if(contractParams.byteCodeHash.length == 0) {
+            return (false, contractParams);
+        }
+        return (true, contractParams);
     }
 
     /*
      * @dev Sets the bytecode of a contract by name
      * @param contractKey The key which must be used to access the bytecode
      * @param bytecode The bytecode to store
+     * @param contractDeployPrice The price (in wei) that users must pay to deploy a contract
      */
     function setContractByteCode(
         string calldata contractKey,
-        bytes calldata byteCode
+        bytes calldata byteCode,
+        uint contractDeployPrice
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        contractByteCodesByKey[contractKey] = byteCode;
+        if (contractParamsByKey[contractKey].byteCodeHash == 0x0) {
+            contractParamsByKey[contractKey] = ContractDeployParameters(keccak256(byteCode), contractDeployPrice);
+            emit ByteCodeUploaded(contractKey, contractDeployPrice, keccak256(byteCode));
+        } else {
+            revert("Contract already deployed");
+        }
     }
+
+    /*
+     * @dev Updates the price of a contract
+     * @param contractKey The key used to reference the contract
+     * @param newPrice The new price (in wei) that users must pay to deploy the contract
+     */
+    function updateContractPrice(
+        string calldata contractKey,
+        uint newPrice
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        ContractDeployParameters memory contractParams = contractParamsByKey[contractKey];
+        if (contractParams.byteCodeHash != 0x0) {
+            contractParamsByKey[contractKey] = ContractDeployParameters(contractParams.byteCodeHash, newPrice);
+            emit PriceUpdated(contractKey, newPrice);
+        } else {
+            revert("Contract not registered");
+        }
+    }
+
+    /*
+     * @dev Makes a contract undeployable
+     * @param contractKey The key used to reference the contract
+     */
+    function discontinueContract(
+        string calldata contractKey
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        ContractDeployParameters memory contractParams = contractParamsByKey[contractKey];
+        if (contractParams.byteCodeHash != 0x0) {
+            contractParamsByKey[contractKey] = ContractDeployParameters(0x0, 0x0);
+            emit ContractDiscontinued(contractKey);
+        } else {
+            revert("Contract not registered");
+        }
+    }
+
 
     function withdraw() external onlyRole(DEFAULT_ADMIN_ROLE) {
         payable(address(msg.sender)).transfer(address(this).balance);
