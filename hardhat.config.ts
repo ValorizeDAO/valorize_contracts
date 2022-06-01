@@ -4,6 +4,7 @@ import "hardhat-typechain";
 import { ethers } from "hardhat";
 require('dotenv').config()
 require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-etherscan");
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -46,18 +47,29 @@ export default {
     ],
   },
   networks: {
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY, process.env.DEPLOY_ACCOUNT_PRIVKEY_1]
+    },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`,
-      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY]
+      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY, process.env.DEPLOY_ACCOUNT_PRIVKEY_1]
     },
-    arbitrum: {
-      url: `https://arbitrum.infura.io/v3/${process.env.INFURA_KEY}`,
-      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY]
+    arbitrumOne: {
+      url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY, process.env.DEPLOY_ACCOUNT_PRIVKEY_1]
     },
     polygon: {
-      url: `https://polygon.infura.io/v3/${process.env.INFURA_KEY}`,
-      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY]
-    }
+      url: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY, process.env.DEPLOY_ACCOUNT_PRIVKEY_1]
+    },
   },
+  etherscan: {
+    apiKey: {
+        mainnet: process.env.ETHERSCAN_API_KEY,
+        arbitrumOne: process.env.ARBISCAN_API_KEY,
+        polygon: process.env.POLYGONSCAN_API_KEY,
+    }
+  }
 };
 
