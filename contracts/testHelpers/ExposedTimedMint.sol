@@ -1,6 +1,6 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.13;
 
 import "../tokens/standards/ERC20TimedMint.sol";
 
