@@ -28,7 +28,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0",
-    "dotenv": "^16.0.1",
+    "@prb/math": "^3.0.0",
+    "dotenv": "^16.0.3",
     "js-sha3": "^0.5.7",
     "merkletreejs": "^0.2.27",
     "solidity-docgen": "^0.5.16",

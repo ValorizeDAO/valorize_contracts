@@ -14,10 +14,10 @@
 // ██████╔╝███████╗██║░░░░░███████╗╚█████╔╝░░░██║░░░███████╗██║░░██║
 // ╚═════╝░╚══════╝╚═╝░░░░░╚══════╝░╚════╝░░░░╚═╝░░░╚══════╝╚═╝░░╚═╝
 
-pragma solidity 0.8.14;
+pragma solidity 0.8.17;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract Deployer is AccessControl{
+contract Deployer is AccessControl {
     struct DeployedContractInfo {
         address deploymentAddress;
         string  contractType;
