@@ -35,15 +35,6 @@ export default {
           },
         }
       },
-      {
-        version: "0.8.17",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 1000,
-          },
-        }
-      },
     ],
   },
   networks: {
@@ -51,9 +42,10 @@ export default {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY]
     },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`,
-      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY]
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [process.env.DEPLOY_ACCOUNT_PRIVKEY],
+      allowUnlimitedContractSize: true
     },
     arbitrumOne: {
       url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
@@ -67,6 +59,7 @@ export default {
   etherscan: {
     apiKey: {
         mainnet: process.env.ETHERSCAN_API_KEY,
+        goerli: process.env.ETHERSCAN_API_KEY,
         arbitrumOne: process.env.ARBISCAN_API_KEY,
         polygon: process.env.POLYGONSCAN_API_KEY,
     }
