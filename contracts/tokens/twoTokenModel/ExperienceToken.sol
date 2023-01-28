@@ -16,7 +16,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract ExperienceToken is IERC20, AccessControl, Airdroppable {
     using SafeMath for uint256;
 
-    uint256 constant CONSTANT = 10**18;
+    uint256 constant DECIMALS = 10**18;
 
     mapping(address => uint256) private _balances;
     mapping (address => mapping (address => uint256)) private _allowances;
@@ -120,7 +120,7 @@ contract ExperienceToken is IERC20, AccessControl, Airdroppable {
      * @param amount the amount of tokens.
      */
     function divideByDecimals(uint256 amount) internal pure returns (uint256) {
-        uint256 tokenAmount = amount / CONSTANT;
+        uint256 tokenAmount = amount / DECIMALS;
         return tokenAmount;
     }
 
@@ -129,7 +129,7 @@ contract ExperienceToken is IERC20, AccessControl, Airdroppable {
      * @param amount the amount of tokens.
      */
     function multiplyByDecimals(uint256 amount) internal pure returns (uint256) {
-        uint256 tokenAmount = amount * CONSTANT;
+        uint256 tokenAmount = amount * DECIMALS;
         return tokenAmount;
     }
     
@@ -146,7 +146,7 @@ contract ExperienceToken is IERC20, AccessControl, Airdroppable {
     /**
      * @dev mints the amount of tokens following the formula described 
      * here: https://www.notion.so/valorize/Two-Token-Model-Proposal-f8b992423cbb4a73859181371c65b53d 
-     * @param amount the amount of Experience Tokens.
+     * @param amount the amount of Experience Tokens. Every year the DAO will mint a certain amount of Experience Tokens.
      */
     function mint(uint256 amount) public {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Not an admin");

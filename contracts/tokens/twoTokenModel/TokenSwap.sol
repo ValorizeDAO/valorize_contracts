@@ -114,7 +114,7 @@ contract TokenSwap is Context, AccessControl {
      * @dev adjusts the weight of the token swap, by default set to 10. Can only be called by admin.
      * @param newWeight the weight that determines how many Tradable Tokens you will receive 
      */
-    function adjustWeight(uint256 newWeight) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adjustWeight(uint256 newWeight) external onlyRole(DEFAULT_ADMIN_ROLE) {
         weight = newWeight;
     }
 
@@ -126,9 +126,10 @@ contract TokenSwap is Context, AccessControl {
     function calculateAmount(uint256 amountIn) public returns (uint256) {
         uint256 amountOut = 
                 
-                weight * fromUD60x18(div(toUD60x18(amountIn * _calculateAboveTheLine(amountIn)),
-                _calculateBelowTheLine()
-                
+                weight * fromUD60x18(
+                    div(toUD60x18(
+                        amountIn * _calculateAboveTheLine(amountIn)),
+                                   _calculateBelowTheLine()
                 ));
         
         return amountOut;
@@ -137,7 +138,7 @@ contract TokenSwap is Context, AccessControl {
     /**
      * @dev swaps Valorize's Experience Tokens for Tradable Tokens according to the formula described 
      * here: https://www.notion.so/valorize/Two-Token-Model-Proposal-f8b992423cbb4a73859181371c65b53d
-     * @param amountIn the amount of Experience Tokens the contributor wants to swap
+     * @param amountIn the amount of Experience Tokens the contributor wants to swap.
      */
     function swap(uint256 amountIn) public {
 

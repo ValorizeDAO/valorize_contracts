@@ -45,14 +45,14 @@ contract TradableToken is ERC20, Airdroppable, AccessControl {
 
   /**
   * @dev calculates and returns the amount of tokens that will be minted over time.
-  * @param input the number that determines the amount of tokens that will be minted
+  * @param input the number that determines the amount of tokens that will be minted.
   */
   function _calculateMintAmount(uint256 input) internal pure returns (uint256) {
       
-  uint256 mintAmount = DECIMALS * uint256(
-    fromUD60x18(div(
-      sqrt(log10(toUD60x18(input))),
-      sqrt(log10(toUD60x18(2))))));
+    uint256 mintAmount = DECIMALS * uint256(
+      fromUD60x18(div(
+        sqrt(log10(toUD60x18(input))),
+        sqrt(log10(toUD60x18(2))))));
           
     return mintAmount;
   }
