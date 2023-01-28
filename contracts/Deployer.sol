@@ -1,12 +1,23 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.13;
+// ██╗░░░██╗░█████╗░██╗░░░░░░█████╗░██████╗░██╗███████╗███████╗
+// ██║░░░██║██╔══██╗██║░░░░░██╔══██╗██╔══██╗██║╚════██║██╔════╝
+// ╚██╗░██╔╝███████║██║░░░░░██║░░██║██████╔╝██║░░███╔═╝█████╗░░
+// ░╚████╔╝░██╔══██║██║░░░░░██║░░██║██╔══██╗██║██╔══╝░░██╔══╝░░
+// ░░╚██╔╝░░██║░░██║███████╗╚█████╔╝██║░░██║██║███████╗███████╗
+// ░░░╚═╝░░░╚═╝░░╚═╝╚══════╝░╚════╝░╚═╝░░╚═╝╚═╝╚══════╝╚══════╝
 
+// ██████╗░███████╗██████╗░██╗░░░░░░█████╗░██╗░░░██╗███████╗██████╗░
+// ██╔══██╗██╔════╝██╔══██╗██║░░░░░██╔══██╗╚██╗░██╔╝██╔════╝██╔══██╗
+// ██║░░██║█████╗░░██████╔╝██║░░░░░██║░░██║░╚████╔╝░█████╗░░██████╔╝
+// ██║░░██║██╔══╝░░██╔═══╝░██║░░░░░██║░░██║░░╚██╔╝░░██╔══╝░░██╔══██╗
+// ██████╔╝███████╗██║░░░░░███████╗╚█████╔╝░░░██║░░░███████╗██║░░██║
+// ╚═════╝░╚══════╝╚═╝░░░░░╚══════╝░╚════╝░░░░╚═╝░░░╚══════╝╚═╝░░╚═╝
+
+pragma solidity 0.8.17;
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-import "hardhat/console.sol";
 
-contract Deployer is AccessControl{
+contract Deployer is AccessControl {
     struct DeployedContractInfo {
         address deploymentAddress;
         string  contractType;
@@ -45,7 +56,7 @@ contract Deployer is AccessControl{
         bytes calldata bytecode,
         bytes calldata params,
         bytes32 salt
-    ) public payable {
+    ) external payable {
         (bool success, ContractDeployParameters memory c) = getContractByteCodeHash(contractType);
         if (!success || c.byteCodeHash != keccak256(bytecode)) {
             revert("Contract is unregistered or discontinued");
@@ -115,7 +126,10 @@ contract Deployer is AccessControl{
         uint contractDeployPrice
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (contractParamsByKey[contractKey].byteCodeHash == 0x0) {
-            contractParamsByKey[contractKey] = ContractDeployParameters(keccak256(byteCode), contractDeployPrice);
+            contractParamsByKey[contractKey] = ContractDeployParameters(
+                keccak256(byteCode), 
+                contractDeployPrice
+            );
             emit ByteCodeUploaded(contractKey, contractDeployPrice, keccak256(byteCode));
         } else {
             revert("Contract already deployed");

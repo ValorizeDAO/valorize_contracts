@@ -105,21 +105,15 @@ describe("Deployer", () => {
       expect(tx.confirmations).to.equal(1)
     })
     it("should deploy a simple token if the bytecode uploaded is correct", async () =>{
-      await deployerContract.connect(await addresses[0]).deployContract(
+      await deployerContract.connect(admin).grantRole(ethers.utils.hexZeroPad("0x0", 32), await addresses[5].getAddress())
+      await deployerContract.connect(await addresses[5]).deployContract(
         "simple_token_v0.1.0", 
         contractByteCode.simpleToken,
         simpleTokenParams,
         ethers.utils.hexZeroPad(randomBytes(32), 32), 
         { value: INITIAL_DEPLOY_PRICE }
       )
-      await deployerContract.connect(await addresses[0]).deployContract(
-        "simple_token_v0.1.0", 
-        contractByteCode.simpleToken,
-        simpleTokenParams,
-        ethers.utils.hexZeroPad(randomBytes(32), 32), 
-        { value: INITIAL_DEPLOY_PRICE }
-      )
-      const deployed = await deployerContract.getDeployed(await addresses[0].getAddress())
+      const deployed = await deployerContract.getDeployed(await addresses[5].getAddress())
       const simpleToken = SimpleTokenFactory.connect(deployed[0].deploymentAddress, addresses[0])
       expect(await simpleToken.name()).to.equal("test")
       expect(await simpleToken.symbol()).to.equal("TST")
